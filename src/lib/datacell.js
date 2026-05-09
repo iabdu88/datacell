@@ -1039,6 +1039,20 @@ function exportCSV() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast(lang==='ar'?'✅ تم التحميل':'✅ Downloaded', 'success');
 }
+function exportXLSX() {
+  if (!cleanData.length) { showToast(lang==="ar"?"لا توجد بيانات":"No data to export","error"); return; }
+  const ws = XLSX.utils.json_to_sheet(cleanData, { header: headers });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "DataCell");
+  const colWidths = headers.map(h => ({
+    wch: Math.max(h.length, ...cleanData.slice(0,50).map(r => String(r[h]||"").length), 10)
+  }));
+  ws["!cols"] = colWidths;
+  const fname = "datacell_clean_" + (filename||"data").replace(/\.[^.]+$/,"") + ".xlsx";
+  XLSX.writeFile(wb, fname);
+  showToast(lang==="ar"?"✅ تم تحميل Excel":"✅ Excel Downloaded","success");
+}
+
 
 function exportPDF() {
   const now = new Date();
