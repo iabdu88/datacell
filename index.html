@@ -79,9 +79,7 @@
       <button class="btn-primary" type="button" onclick="event.stopPropagation(); document.getElementById('file-input').click()" data-ar="اختر ملفاً" data-en="Choose File">اختر ملفاً</button>
     </div>
     <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
-    <button class="btn-secondary" onclick="loadSampleData()" data-ar="جرّب بملف تجريبي 📋" data-en="Try with sample data 📋">جرّب بملف تجريبي 📋</button>
-    <button class="btn-analytics-direct" onclick="loadSampleForAnalytics()" data-ar="📊 حلّل ملفك مباشرة" data-en="📊 Analyze Directly">📊 حلّل ملفك مباشرة</button>
-  </div>
+<input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none">
 </section>
 
 <!-- SCREEN 2: PROCESSING -->

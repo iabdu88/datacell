@@ -1,4 +1,4 @@
-
+import './lib/datacell.js';
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -13,10 +13,10 @@
       --error: #ef4444;
       --text: #f1f5f9;
       --muted: #94a3b8;
-      --font: 'Tajawal', sans-serif;
+      --font: 'Tajawal', 'Segoe UI Emoji', 'Noto Color Emoji', 'Apple Color Emoji', sans-serif;
     }
 
-    html[dir="ltr"] { --font: 'Inter', sans-serif; }
+    html[dir="ltr"] { --font: 'Inter', 'Segoe UI Emoji', 'Noto Color Emoji', 'Apple Color Emoji', sans-serif; }
 
     body {
       background: var(--bg);
@@ -753,6 +753,7 @@
   
 
 
+    body{font-family:${lang==='ar'?"'Tajawal'":"'Inter'"};direction:${lang==='ar'?'rtl':'ltr'};padding:40px;color:#1a1a1a;background:white}
     h1{background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px}
     table{width:100%;border-collapse:collapse;margin-top:16px}
     .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}
@@ -761,33 +762,62 @@
     @media print{body{padding:20px}}
   
 
+body{font-family:${lang==='ar'?"'Tajawal'":"'Inter'"};direction:${lang==='ar'?'rtl':'ltr'};padding:40px;color:#1a1a1a;background:white;font-size:13px}h1{background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:26px}h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin:20px 0 10px}table{width:100%;border-collapse:collapse;margin:8px 0}th{background:#6366f1;color:white;padding:7px;text-align:start;font-size:12px}td{padding:7px;border-bottom:1px solid #e2e8f0;font-size:12px}.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.stat-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center}.big{font-size:20px;font-weight:800;color:#6366f1}@media print{body{padding:20px}}
+    /* ══ MOBILE EMOJI FIX ══════════════════════════════════ */
+    /* Forces emoji rendering on Android & iOS */
+    .card-title, .export-icon, .ops-log-header,
+    .btn-sector, .analytics-section-title,
+    [data-ar], [data-en], .nav, .tagline,
+    .drop-zone h3, .status-msg, .cleaning-sub {
+      font-variant-emoji: emoji;
+    }
 
-    /* ══ SDAIA FOOTER ═══════════════════════════════════ */
-    .sdaia-footer {
-      position: relative; z-index: 2;
-      background: rgba(10,15,30,0.9);
-      border-top: 1px solid var(--border);
-      padding: .75rem 1.5rem;
-      text-align: center;
-      font-size: .78rem;
-      color: var(--muted);
-      backdrop-filter: blur(10px);
+    /* ══ MOBILE RESPONSIVE FIXES ═══════════════════════════ */
+    @media (max-width: 480px) {
+      .nav { padding: .6rem 1rem; gap: .4rem; flex-wrap: wrap; }
+      .nav-actions { gap: .3rem; flex-wrap: wrap; }
+      .btn-lang { padding: .3rem .6rem; font-size: .75rem; }
+      .btn-presentation { padding: .3rem .6rem; font-size: .75rem; }
+      .hero { padding: 2rem 1rem; }
+      .hero-logo { font-size: 2.4rem; }
+      .tagline { font-size: 1rem; }
+      .drop-zone { padding: 1.5rem 1rem; }
+      .insights-content { padding: 1rem; }
+      .stat-cards { grid-template-columns: 1fr 1fr; }
+      .export-content { padding: 1rem; }
+      .dashboard-grid { padding: 0 .75rem; }
+      .comparison-grid { grid-template-columns: 1fr; }
+      .analytics-charts-grid { grid-template-columns: 1fr; }
+      .exec-summary-grid { grid-template-columns: 1fr 1fr; }
+      /* Export cards bigger tap target on mobile */
+      .export-card { padding: 1.2rem; gap: .75rem; }
+      .export-title { font-size: .95rem; }
+      /* Chat panel full width on mobile */
+      #chat-panel { width: 94vw; right: 3vw; bottom: 70px; }
     }
-    .sdaia-footer-inner {
+
+    /* ══ DOWNLOAD BUTTONS (always visible) ════════════════ */
+    .dl-bar {
       display: flex;
-      align-items: center;
-      justify-content: center;
       flex-wrap: wrap;
+      gap: .75rem;
+      margin: 1.5rem 0;
+      justify-content: center;
+    }
+    .dl-btn {
+      display: inline-flex;
+      align-items: center;
       gap: .5rem;
+      padding: .8rem 1.5rem;
+      border-radius: 12px;
+      border: none;
+      font-family: var(--font);
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
     }
-    .sdaia-sep { opacity: .3; }
-    .sdaia-badge-ft {
-      display: inline-flex; align-items: center;
-      padding: .2rem .6rem;
-      border-radius: 20px;
-      background: rgba(99,102,241,0.12);
-      border: 1px solid rgba(99,102,241,0.25);
-      color: #818cf8;
-      font-size: .72rem;
-      font-weight: 600;
-    }
+    .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+    .dl-btn-csv  { background: linear-gradient(135deg,#10b981,#059669); color: #fff; }
+    .dl-btn-xlsx { background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; }
+    .dl-btn-pdf  { background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff; }

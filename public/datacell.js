@@ -2067,3 +2067,23 @@ window.removeFilter          = removeFilter;
 window.clearFilters          = clearFilters;
 window.runColumnComparison   = runColumnComparison;
 window.wowROI                = wowROI;
+// ننتظر تحميل الصفحة بالكامل
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('file-input');
+    
+    if (fileInput) {
+        // نربط الدالة بالمدخل برمجياً
+        fileInput.addEventListener('change', (event) => {
+            // نتحقق من وجود الدالة handleFile ونشغلها
+            if (typeof handleFile === 'function') {
+                handleFile(event);
+            }
+        });
+        console.log("✅ تم ربط مدخل الملفات بنجاح");
+    } else {
+        console.error("❌ لم يتم العثور على عنصر بالـ id: file-input");
+    }
+});
+
+// للاحتياط، نجعل الدالة متاحة عالمياً (Global)
+window.handleFile = handleFile;

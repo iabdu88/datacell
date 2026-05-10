@@ -1,4 +1,4 @@
-
+import './lib/datacell.js';
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
