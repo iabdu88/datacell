@@ -198,13 +198,6 @@
       </div>
     </div>
 
-
-    <!-- QUICK DOWNLOAD BAR in insights screen -->
-    <div class="dl-bar" style="margin:0 0 1rem">
-      <button class="dl-btn dl-btn-csv" onclick="exportCSV()">⬇️ CSV</button>
-      <button class="dl-btn dl-btn-xlsx" onclick="exportXLSX()">📊 Excel</button>
-      <button class="dl-btn dl-btn-pdf" onclick="exportPDF()">📄 PDF</button>
-    </div>
     <!-- Stat Cards -->
     <div class="stat-cards" id="stat-cards"></div>
 
@@ -378,19 +371,6 @@
   </nav>
   <div class="export-content">
     <h2 style="margin-bottom:1.5rem;font-size:1.5rem" data-ar="تصدير النتائج" data-en="Export Results">تصدير النتائج</h2>
-    <!-- DOWNLOAD BAR — always visible at top of export screen -->
-    <div class="dl-bar">
-      <button class="dl-btn dl-btn-csv" onclick="exportCSV()">
-        ⬇️ <span data-ar="تحميل CSV" data-en="Download CSV">تحميل CSV</span>
-      </button>
-      <button class="dl-btn dl-btn-xlsx" onclick="exportXLSX()">
-        📊 <span data-ar="تحميل Excel" data-en="Download Excel">تحميل Excel</span>
-      </button>
-      <button class="dl-btn dl-btn-pdf" onclick="exportPDF()">
-        📄 <span data-ar="تحميل PDF" data-en="Download PDF">تحميل PDF</span>
-      </button>
-    </div>
-
 
     <div class="export-card" onclick="exportCSV()">
       <div class="export-icon">⬇️</div>
@@ -469,6 +449,18 @@
   </div>
 </section>
 <!-- App Logic -->
+
+<!-- SDAIA FOOTER -->
+<footer class="sdaia-footer">
+  <div class="sdaia-footer-inner">
+    <span>DataCell &copy; 2025 Abdu Abdella Ahmed</span>
+    <span class="sdaia-sep">|</span>
+    <span data-ar="مُطابق لمتطلبات" data-en="Compliant with">مُطابق لمتطلبات</span>
+    <span class="sdaia-badge-ft">🛡️ سدايا / SDAIA</span>
+    <span class="sdaia-badge-ft">📋 PDPL</span>
+    <span class="sdaia-badge-ft">🔒 Zero-Persistence</span>
+  </div>
+</footer>
 <script src="./src/lib/datacell.js"></script>
 </body>
 </html>

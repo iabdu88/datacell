@@ -1048,9 +1048,9 @@ function exportXLSX() {
     wch: Math.max(h.length, ...cleanData.slice(0,50).map(r => String(r[h]||"").length), 10)
   }));
   ws["!cols"] = colWidths;
-  const fname = "datacell_clean_" + (filename||"data").replace(/\.[^.]+$/,"") + ".xlsx";
+  const fname = "datacell_clean_" + (filename||"data").replace(/\.[^.]+$/, "") + ".xlsx";
   XLSX.writeFile(wb, fname);
-  showToast(lang==="ar"?"✅ تم تحميل Excel":"✅ Excel Downloaded","success");
+  showToast(lang==="ar"?"تم تحميل Excel ✅":"Excel Downloaded ✅","success");
 }
 
 
