@@ -736,15 +736,49 @@ function performCleaning() {
   });
   if (filled > 0) addOp(`✏️ ${lang==='ar'?'تم ملء '+filled+' خلية فارغة (وسيط/الأكثر تكراراً)':'Filled '+filled+' empty cells (median/mode)'}`);
 
-  // ── 5. Cap outliers (>3σ from mean) to the fence value ──
+  // ── 5. Protect phone/ID columns + Cap outliers using IQR (more robust than 3σ) ──
+
+  // Detect phone/ID columns: 8-12 digit numbers, should stay as strings
+  const phoneColSet = new Set();
+  headers.forEach(col => {
+    const PHONE_RE = /^(\+?966|00966|0)?[5][0-9]{7,8}$|^05[0-9]{8}$|^[5][0-9]{8}$/;
+    const ID_RE    = /^[12][0-9]{9}$/; // Saudi national ID
+    const sample   = cleanData.slice(0, 30).map(r => String(r[col] ?? '').trim());
+    const phoneHits = sample.filter(v => PHONE_RE.test(v.replace(/[\s\-]/g,''))).length;
+    const idHits    = sample.filter(v => ID_RE.test(v)).length;
+    // Also check column name hints
+    const nameHint  = /phone|جوال|هاتف|موبايل|tel|mobile|id|هوية|رقم.*(هوية|وطني)/i.test(col);
+    if (phoneHits >= sample.filter(v=>v).length * 0.4 || idHits >= sample.filter(v=>v).length * 0.4 || nameHint) {
+      phoneColSet.add(col);
+      // Ensure stored as string without decimals
+      cleanData.forEach(r => {
+        const v = String(r[col] ?? '').trim();
+        // Remove any .0 suffix added by XLSX parser
+        r[col] = v.replace(/\.0+$/, '');
+        // Format Saudi mobile: ensure starts with 05 or +966
+        const digits = r[col].replace(/[^\d]/g, '');
+        if (/^5[0-9]{8}$/.test(digits))       r[col] = '0' + digits;
+        if (/^9665[0-9]{8}$/.test(digits))    r[col] = '0' + digits.slice(3);
+        if (/^00966/.test(r[col]))             r[col] = '0' + r[col].slice(5);
+      });
+    }
+  });
+  if (phoneColSet.size > 0) addOp(`📱 ${lang==='ar'?'تم حماية وتنسيق '+phoneColSet.size+' عمود جوال/هوية':'Protected '+phoneColSet.size+' phone/ID column(s)'}`);
+
+  // IQR outlier capping — skip phone/ID columns
   let capped = 0;
   headers.forEach(col => {
+    if (phoneColSet.has(col)) return; // never cap phone numbers
     const nums = cleanData.map(r => parseFloat(String(r[col]).replace(/,/g,''))).filter(n => !isNaN(n));
-    if (nums.length < 5) return;
-    const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
-    const std  = Math.sqrt(nums.reduce((a, b) => a + (b - mean) ** 2, 0) / nums.length);
-    if (std === 0) return;
-    const lo = mean - 3 * std, hi = mean + 3 * std;
+    if (nums.length < 4) return;
+    // IQR method (more robust than 3σ for skewed data like salaries)
+    const sorted2 = [...nums].sort((a, b) => a - b);
+    const q1  = sorted2[Math.floor(sorted2.length * 0.25)];
+    const q3  = sorted2[Math.floor(sorted2.length * 0.75)];
+    const iqr = q3 - q1;
+    if (iqr === 0) return; // no spread, skip
+    const lo  = q1 - 1.5 * iqr;
+    const hi  = q3 + 1.5 * iqr;
     cleanData.forEach(r => {
       const n = parseFloat(String(r[col]).replace(/,/g,''));
       if (!isNaN(n) && (n < lo || n > hi)) {
@@ -753,7 +787,7 @@ function performCleaning() {
       }
     });
   });
-  if (capped > 0) addOp(`📐 ${lang==='ar'?'تم تقليص '+capped+' قيمة شاذة إلى الحد الطبيعي':'Capped '+capped+' outlier values to normal range'}`);
+  if (capped > 0) addOp(`📐 ${lang==='ar'?'تم ضبط '+capped+' قيمة شاذة (IQR) إلى الحد الطبيعي':'Capped '+capped+' outlier(s) via IQR to normal range'}`);
 
   // ── 6. Standardize mixed date formats → ISO YYYY-MM-DD ──
   headers.forEach(col => {
@@ -1027,9 +1061,18 @@ function goToExport() {
 function exportCSV() {
   const BOM = '\uFEFF';
   const lines = [headers.join(',')];
+  // Detect phone cols to strip .0 in CSV too
+  const PHONE_RE3 = /^(\+?966|00966|0)?[5][0-9]{7,8}$|^05[0-9]{8}$/;
+  const csvTextCols = new Set(headers.filter(h => {
+    const s = cleanData.slice(0,20).map(r=>String(r[h]??'').trim());
+    return s.filter(v=>v && PHONE_RE3.test(v.replace(/[\s\-]/g,''))).length >= s.filter(v=>v).length*0.4
+      || /phone|جوال|هاتف|tel|mobile/i.test(h);
+  }));
   cleanData.forEach(row => {
     lines.push(headers.map(h => {
-      const v = String(row[h] ?? '').replace(/"/g,'""');
+      let v = String(row[h] ?? '');
+      if (csvTextCols.has(h)) v = v.replace(/\.0+$/, ''); // strip .0 from phones
+      v = v.replace(/"/g,'""');
       return v.includes(',') || v.includes('"') ? `"${v}"` : v;
     }).join(','));
   });
@@ -1041,16 +1084,43 @@ function exportCSV() {
 }
 function exportXLSX() {
   if (!cleanData.length) { showToast(lang==="ar"?"لا توجد بيانات":"No data to export","error"); return; }
-  const ws = XLSX.utils.json_to_sheet(cleanData, { header: headers });
+
+  // Detect phone/ID cols to force text format in Excel (prevents .0 suffix)
+  const PHONE_RE2 = /^(\+?966|00966|0)?[5][0-9]{7,8}$|^05[0-9]{8}$/;
+  const ID_RE2    = /^[12][0-9]{9}$/;
+  const textCols  = new Set();
+  headers.forEach(h => {
+    const sample = cleanData.slice(0,20).map(r => String(r[h]??'').trim());
+    const isPhone = sample.filter(v=>v).filter(v => PHONE_RE2.test(v.replace(/[\s\-]/g,''))).length >= sample.filter(v=>v).length * 0.4;
+    const isID    = sample.filter(v=>v).filter(v => ID_RE2.test(v)).length >= sample.filter(v=>v).length * 0.4;
+    const nameHint = /phone|جوال|هاتف|tel|mobile|id|هوية/i.test(h);
+    if (isPhone || isID || nameHint) textCols.add(h);
+  });
+
+  // Build sheet data with text prefix for phone/ID cells
+  const sheetData = cleanData.map(row => {
+    const newRow = {};
+    headers.forEach(h => {
+      const v = row[h] ?? '';
+      // Force text type for phone/ID to prevent Excel converting to number
+      newRow[h] = textCols.has(h) ? { t: 's', v: String(v).replace(/\.0+$/, '') } : v;
+    });
+    return newRow;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(sheetData, { header: headers });
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "DataCell");
+  XLSX.utils.book_append_sheet(wb, ws, 'DataCell');
+
+  // Column widths
   const colWidths = headers.map(h => ({
-    wch: Math.max(h.length, ...cleanData.slice(0,50).map(r => String(r[h]||"").length), 10)
+    wch: Math.max(h.length, ...cleanData.slice(0,50).map(r => String(r[h]||'').length), 12)
   }));
-  ws["!cols"] = colWidths;
-  const fname = "datacell_clean_" + (filename||"data").replace(/\.[^.]+$/, "") + ".xlsx";
+  ws['!cols'] = colWidths;
+
+  const fname = 'datacell_clean_' + (filename||'data').replace(/\.[^.]+$/, '') + '.xlsx';
   XLSX.writeFile(wb, fname);
-  showToast(lang==="ar"?"تم تحميل Excel ✅":"Excel Downloaded ✅","success");
+  showToast(lang==="ar"?"✅ تم تحميل Excel":"✅ Excel Downloaded","success");
 }
 
 
