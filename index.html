@@ -3,200 +3,464 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <meta name="description" content="DataCell — منصة تنظيف وتحليل البيانات للشركات السعودية." />
+  <meta name="description" content="DataCell — منصة تنظيف وتحليل البيانات للشركات السعودية الصغيرة والمتوسطة. رفع ملف CSV أو Excel وتنظيفه في ثوانٍ." />
+  <meta name="keywords" content="تنظيف بيانات, تحليل بيانات, DataCell, Saudi SME, CSV, Excel" />
+  <meta property="og:title" content="DataCell — نظّف بياناتك" />
+  <meta property="og:description" content="نظّف بياناتك. افهم أرقامك. في ثوانٍ." />
+  <meta property="og:image" content="/opengraph.jpg" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
   <title>DataCell — نظّف بياناتك</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- SheetJS for Excel/CSV parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    /* التنسيق الملكي باللون الأسود والأزرق التقني */
-    :root {
-      --bg: #050505;
-      --card: #111111;
-      --primary: #38bdf8;
-      --text: #f8fafc;
-      --muted: #64748b;
-    }
-    body { font-family: 'Tajawal', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; }
-    .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-    .screen.active { display: flex; }
-    .logo-text { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 20px 0; }
-    .hero-logo { font-size: 4rem; font-weight: 900; letter-spacing: -2px; margin: 10px 0; }
-    .drop-zone {
-      width: 100%; max-width: 600px; height: 250px; border: 2px dashed #333; border-radius: 24px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
-    }
-    .btn-primary {
-      background: var(--primary); color: #000; border: none; padding: 14px 40px;
-      border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 20px;
-    }
-    .data-table-wrap { width: 100%; max-width: 1100px; background: var(--card); border-radius: 16px; overflow-x: auto; margin-top: 20px; border: 1px solid #222; }
-    table { width: 100%; border-collapse: collapse; text-align: right; }
-    th { background: #1a1a1a; color: var(--primary); padding: 12px; border: 1px solid #222; }
-    td { padding: 10px; border: 1px solid #222; font-size: 0.85rem; color: #cbd5e1; }
-    .progress-bar-outer { width: 100%; max-width: 400px; height: 8px; background: #222; border-radius: 4px; margin-top: 20px; overflow: hidden; }
-    .progress-bar-inner { width: 0%; height: 100%; background: var(--primary); transition: width 1s ease; }
-    footer { padding: 40px 20px; text-align: center; border-top: 1px solid #111; font-size: 0.8rem; color: var(--muted); }
-  </style>
+  <!-- App Styles -->
+  <link rel="stylesheet" href="./src/styles/main.css" />
 </head>
 <body>
+<!-- AURORA BG -->
+<div class="aurora"></div>
 
+<!-- CONFETTI -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- CHAT BUTTON -->
+<button id="chat-btn" onclick="toggleChat()" aria-label="AI Chat">🤖</button>
+
+<!-- CHAT PANEL -->
+<div id="chat-panel">
+  <div class="chat-header">
+    <span class="chat-title" data-ar="اسألني عن بياناتك 🤖" data-en="Ask about your data 🤖">اسألني عن بياناتك 🤖</span>
+    <button class="btn-close-chat" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg-bubble msg-ai" data-ar="مرحباً! اسألني أي سؤال عن بياناتك 📊" data-en="Hello! Ask me anything about your data 📊">مرحباً! اسألني أي سؤال عن بياناتك 📊</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" class="chat-input" id="chat-input" placeholder="اكتب سؤالك..." onkeydown="if(event.key==='Enter') sendChat()" />
+    <button class="btn-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<!-- PRESENTATION MODE -->
+<div id="presentation-mode">
+  <div class="pres-esc">اضغط ESC للخروج | Press ESC to exit</div>
+  <div class="pres-title">DataCell — تقرير التحليل</div>
+  <div id="pres-gauge-wrap" style="margin-bottom:1.5rem"></div>
+  <div class="pres-grid" id="pres-grid"></div>
+</div>
+
+<!-- SCREEN 1: LANDING -->
 <section class="screen active" id="screen-landing">
-  <div class="logo-text">DataCell</div>
-  <div class="hero-logo">DataCell</div>
-  <p style="color:var(--muted)">نظّف بياناتك. افهم أرقامك. في ثوانٍ.</p>
-  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-    <div style="font-size: 3rem">📂</div>
-    <h3>اسحب ملفك هنا أو انقر للاختيار</h3>
-    <p>CSV • XLSX • XLS</p>
+  <nav class="nav">
+    <div class="logo-text">DataCell</div>
+    <div class="nav-actions">
+      <button class="btn-lang" onclick="toggleLang()">EN</button>
+    </div>
+  </nav>
+  <div class="hero">
+    <div class="hero-logo">DataCell</div>
+    <div class="tagline" data-ar="نظّف بياناتك. افهم أرقامك. في ثوانٍ." data-en="Clean your data. Understand your numbers. In seconds.">نظّف بياناتك. افهم أرقامك. في ثوانٍ.</div>
+
+    <div class="drop-zone" id="drop-zone"
+         ondragover="event.preventDefault(); this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="handleDrop(event)"
+         onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">📂</div>
+      <h3 data-ar="اسحب ملفك هنا" data-en="Drag your file here">اسحب ملفك هنا</h3>
+      <p data-ar="أو انقر للاختيار" data-en="Or click to browse">أو انقر للاختيار</p>
+      <div class="formats-badge">
+        <span>CSV</span><span>•</span><span>XLSX</span><span>•</span><span>XLS</span>
+      </div>
+      <button class="btn-primary" type="button" onclick="event.stopPropagation(); document.getElementById('file-input').click()" data-ar="اختر ملفاً" data-en="Choose File">اختر ملفاً</button>
+    </div>
+    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
+    <button class="btn-secondary" onclick="loadSampleData()" data-ar="جرّب بملف تجريبي 📋" data-en="Try with sample data 📋">جرّب بملف تجريبي 📋</button>
+    <button class="btn-analytics-direct" onclick="loadSampleForAnalytics()" data-ar="📊 حلّل ملفك مباشرة" data-en="📊 Analyze Directly">📊 حلّل ملفك مباشرة</button>
   </div>
-  <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
 </section>
 
+<!-- SCREEN 2: PROCESSING -->
 <section class="screen" id="screen-processing">
-  <div style="font-size: 5rem; margin-top: 20vh">⟳</div>
-  <h2>جاري المعالجة...</h2>
-  <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
+  <canvas class="particles-canvas" id="particles-canvas"></canvas>
+  <div class="processing-content">
+    <div class="spinner-logo">⟳</div>
+    <h2 data-ar="جاري المعالجة..." data-en="Processing...">جاري المعالجة...</h2>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progress-bar"></div>
+    </div>
+    <div class="status-msg" id="status-msg">جاري قراءة الملف...</div>
+  </div>
 </section>
 
+<!-- SCREEN 3: DIAGNOSIS -->
 <section class="screen" id="screen-diagnosis">
-  <h2>🔍 تحليل البيانات</h2>
-  <div style="display:flex; gap:10px; margin-bottom:20px">
-    <div class="problem-badge" style="background:#1a1a1a; padding:10px 20px; border-radius:10px; border:1px solid #333"><span>خلايا فارغة</span></div>
-    <div class="problem-badge" style="background:#1a1a1a; padding:10px 20px; border-radius:10px; border:1px solid #333"><span>صفوف مكررة</span></div>
+  <nav class="nav">
+    <div class="logo-text">DataCell</div>
+    <div class="nav-actions">
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem" onclick="resetAll()" data-ar="🏠 الرئيسية" data-en="🏠 Home">🏠 الرئيسية</button>
+      <button class="btn-presentation" onclick="openPresentation()" data-ar="وضع العرض 📊" data-en="Presentation 📊">وضع العرض 📊</button>
+      <button class="btn-lang" onclick="toggleLang()">EN</button>
+    </div>
+  </nav>
+  <div class="dashboard-grid">
+    <!-- File Summary Card -->
+    <div class="card" style="animation-delay:.05s">
+      <div class="card-title">📁 <span data-ar="ملخص الملف" data-en="File Summary">ملخص الملف</span></div>
+      <div id="file-summary-content"></div>
+      <div class="gauge-container">
+        <svg class="gauge-svg" viewBox="0 0 140 140">
+          <circle class="gauge-bg" cx="70" cy="70" r="52"/>
+          <circle class="gauge-ring" id="gauge-ring" cx="70" cy="70" r="52" stroke="#6366f1"/>
+          <text class="gauge-text" x="70" y="67" id="gauge-score">0%</text>
+          <text class="gauge-label" x="70" y="83" data-ar="جودة البيانات" data-en="Data Quality">جودة البيانات</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Problems Card -->
+    <div class="card" style="animation-delay:.1s">
+      <div class="card-title">🔍 <span data-ar="المشاكل المكتشفة" data-en="Detected Issues">المشاكل المكتشفة</span></div>
+      <div id="problems-list"></div>
+    </div>
+
+    <!-- Suggestions Card -->
+    <div class="card" style="animation-delay:.15s">
+      <div class="card-title">💡 <span data-ar="اقتراحات التنظيف" data-en="Cleaning Suggestions">اقتراحات التنظيف</span></div>
+      <div id="suggestions-list"></div>
+    </div>
   </div>
-  <div class="data-table-wrap"><table id="preview-table"></table></div>
-  <button class="btn-primary" onclick="startCleaning()">✨ نظّف كل شيء تلقائياً</button>
+
+  <!-- Preview Table -->
+  <div style="padding: 0 1.5rem 1rem">
+    <div class="card" style="animation-delay:.2s">
+      <div class="card-title">👁️ <span data-ar="معاينة البيانات (أول 10 صفوف)" data-en="Data Preview (first 10 rows)">معاينة البيانات (أول 10 صفوف)</span></div>
+      <div class="data-table-wrap">
+        <table class="data-table" id="preview-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-clean-all" onclick="startCleaning()" data-ar="✨ نظّف كل شيء تلقائياً" data-en="✨ Clean Everything Automatically">✨ نظّف كل شيء تلقائياً</button>
 </section>
 
+<!-- SCREEN 4: CLEANING -->
 <section class="screen" id="screen-cleaning">
-  <div style="font-size: 6rem; font-weight: 900; color: var(--primary); margin-top: 20vh">✨</div>
-  <h2>جاري التنظيف الآن...</h2>
+  <canvas class="particles-canvas" id="particles-canvas2"></canvas>
+  <div class="cleaning-content">
+    <div class="cleaning-counter" id="cleaning-counter">0</div>
+    <div class="cleaning-sub" id="cleaning-sub" data-ar="صف تمت معالجته..." data-en="rows processed...">صف تمت معالجته...</div>
+    <div class="row-animation-zone" id="row-anim-zone"></div>
+  </div>
 </section>
 
+<!-- SCREEN 5: INSIGHTS -->
 <section class="screen" id="screen-insights">
-  <h2>✅ تم التنظيف بنجاح</h2>
-  <div style="display:flex; gap:20px; width:100%; max-width:1100px">
-    <div style="flex:1">
-      <p style="text-align:center; color:var(--muted)">قبل <span id="before-row-count"></span></p>
-      <div class="data-table-wrap"><table id="clean-table-before"></table></div>
+  <nav class="nav">
+    <div class="logo-text">DataCell</div>
+    <div class="nav-actions">
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem" onclick="resetAll()" data-ar="🏠 الرئيسية" data-en="🏠 Home">🏠 الرئيسية</button>
+      <button class="btn-presentation" onclick="openPresentation()" data-ar="وضع العرض 📊" data-en="Presentation 📊">وضع العرض 📊</button>
+      <button class="btn-lang" onclick="toggleLang()">EN</button>
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem;border-color:rgba(6,182,212,.4);color:var(--secondary)" onclick="showAnalytics()" data-ar="📊 انتقل للتحليل" data-en="📊 Analytics">📊 انتقل للتحليل</button>
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem" onclick="goToExport()" data-ar="تصدير ⬇️" data-en="Export ⬇️">تصدير ⬇️</button>
     </div>
-    <div style="flex:1">
-      <p style="text-align:center; color:var(--primary)">بعد <span id="after-row-count"></span></p>
-      <div class="data-table-wrap"><table id="clean-table-after"></table></div>
+  </nav>
+  <div class="insights-content">
+
+    <!-- Before / After Panels -->
+    <div class="comparison-grid">
+      <!-- BEFORE -->
+      <div class="comp-panel">
+        <div class="comp-panel-header before">
+          <span>🔴</span>
+          <span data-ar="قبل التنظيف" data-en="Before Cleaning">قبل التنظيف</span>
+          <span class="comp-row-count" id="before-row-count"></span>
+        </div>
+        <div class="comp-panel-body">
+          <table id="clean-table-before"></table>
+        </div>
+      </div>
+      <!-- AFTER -->
+      <div class="comp-panel">
+        <div class="comp-panel-header after">
+          <span>✅</span>
+          <span data-ar="بعد التنظيف" data-en="After Cleaning">بعد التنظيف</span>
+          <span class="comp-row-count" id="after-row-count"></span>
+        </div>
+        <div class="comp-panel-body">
+          <table id="clean-table-after"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stat-cards" id="stat-cards"></div>
+
+    <!-- Charts -->
+    <div class="charts-grid" id="charts-grid"></div>
+
+    <!-- AI Insights -->
+    <div class="ai-insights" id="ai-insights"></div>
+
+    <!-- WOW INVESTOR SECTIONS -->
+<div id="wow-sections" style="margin:1.5rem 0">
+
+  <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:1.25rem;margin-bottom:1rem">
+    <div style="font-size:.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:1rem">① Data Health Score™</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
+      <div style="position:relative;width:130px;height:130px">
+        <svg viewBox="0 0 130 130" width="130" height="130" style="transform:rotate(-90deg)">
+          <circle fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10" cx="65" cy="65" r="54"/>
+          <circle id="wow-ring" fill="none" stroke="#1D9E75" stroke-width="10" stroke-linecap="round" cx="65" cy="65" r="54" stroke-dasharray="339" stroke-dashoffset="339" style="transition:stroke-dashoffset 1.2s ease"/>
+        </svg>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+          <div id="wow-score-num" style="font-size:28px;font-weight:700;color:white">0</div>
+          <div style="font-size:11px;color:#94a3b8">/ 100</div>
+        </div>
+      </div>
+      <div id="wow-score-label" style="font-size:14px;font-weight:700;color:white">جاري التحليل...</div>
+      <div style="width:100%">
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+          <div style="width:26px;height:26px;border-radius:6px;background:rgba(220,38,38,.15);display:flex;align-items:center;justify-content:center">📱</div>
+          <div style="flex:1;color:#e2e8f0;font-size:13px">أرقام جوال غير صحيحة</div>
+          <div id="wow-b1-count" style="font-size:12px;color:#94a3b8"></div>
+          <div style="width:55px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden"><div id="wow-b1" style="height:100%;background:#dc2626;width:0;transition:width 1s"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+          <div style="width:26px;height:26px;border-radius:6px;background:rgba(217,119,6,.15);display:flex;align-items:center;justify-content:center">👥</div>
+          <div style="flex:1;color:#e2e8f0;font-size:13px">سجلات مكررة</div>
+          <div id="wow-b2-count" style="font-size:12px;color:#94a3b8"></div>
+          <div style="width:55px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden"><div id="wow-b2" style="height:100%;background:#d97706;width:0;transition:width 1s"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+          <div style="width:26px;height:26px;border-radius:6px;background:rgba(217,119,6,.15);display:flex;align-items:center;justify-content:center">⬜</div>
+          <div style="flex:1;color:#e2e8f0;font-size:13px">خلايا فارغة</div>
+          <div id="wow-b3-count" style="font-size:12px;color:#94a3b8"></div>
+          <div style="width:55px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden"><div id="wow-b3" style="height:100%;background:#d97706;width:0;transition:width 1s"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0">
+          <div style="width:26px;height:26px;border-radius:6px;background:rgba(22,163,74,.15);display:flex;align-items:center;justify-content:center">✅</div>
+          <div style="flex:1;color:#e2e8f0;font-size:13px">سجلات سليمة</div>
+          <div id="wow-b4-count" style="font-size:12px;color:#94a3b8"></div>
+          <div style="width:55px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden"><div id="wow-b4" style="height:100%;background:#16a34a;width:0;transition:width 1s"></div></div>
+        </div>
+      </div>
     </div>
   </div>
-  <button class="btn-primary" onclick="exportCSV()">⬇️ تحميل الملف النظيف</button>
-  <button class="btn-primary" style="background:#222; color:#fff" onclick="location.reload()">🔄 ابدأ من جديد</button>
+
+  <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:1.25rem;margin-bottom:1rem">
+    <div style="font-size:.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:1rem">② Advanced ROI Calculator</div>
+
+    <!-- Speed Factor Banner -->
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(16,185,129,.18));border:1px solid rgba(99,102,241,.35);border-radius:14px;padding:.9rem 1.1rem;margin-bottom:1.1rem;text-align:center">
+      <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">⚡ معدل السرعة المقارن</div>
+      <div style="font-size:15px;font-weight:700;color:#e2e8f0;line-height:1.5">
+        هذا النظام يعمل بـ
+        <span id="wow-speed-x" style="font-size:28px;font-weight:800;color:#6ee7b7;margin:0 4px">60×</span>
+        أضعاف سرعة الموظف البشري
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px;font-size:11px;color:#64748b">
+        <span>👤 يدوي: <b style="color:#f87171">60 دقيقة/ملف</b></span>
+        <span style="color:#334155">→</span>
+        <span>🤖 DataCell: <b style="color:#4ade80">دقيقة واحدة/ملف</b></span>
+      </div>
+    </div>
+
+    <!-- Sliders -->
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:#94a3b8;width:155px;text-align:right;flex-shrink:0">👥 عدد موظفي البيانات</label>
+        <input type="range" min="1" max="50" value="5" id="wow-emp" oninput="wowROI()" style="flex:1;accent-color:#6366f1">
+        <span id="wow-empV" style="font-size:15px;font-weight:800;color:white;min-width:34px;text-align:center;background:rgba(99,102,241,.2);border-radius:6px;padding:2px 6px">5</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:#94a3b8;width:155px;text-align:right;flex-shrink:0">📂 ملفات تُنظَّف شهرياً</label>
+        <input type="range" min="1" max="300" value="20" id="wow-files" oninput="wowROI()" style="flex:1;accent-color:#6366f1">
+        <span id="wow-filesV" style="font-size:15px;font-weight:800;color:white;min-width:34px;text-align:center;background:rgba(99,102,241,.2);border-radius:6px;padding:2px 6px">20</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:#94a3b8;width:155px;text-align:right;flex-shrink:0">💰 راتب الموظف / ساعة</label>
+        <input type="range" min="30" max="300" value="75" step="5" id="wow-rate" oninput="wowROI()" style="flex:1;accent-color:#6366f1">
+        <span id="wow-rateV" style="font-size:15px;font-weight:800;color:white;min-width:44px;text-align:center;background:rgba(99,102,241,.2);border-radius:6px;padding:2px 6px">75</span>
+      </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:.9rem;text-align:center">
+        <div id="wow-hours" style="font-size:26px;font-weight:800;color:#e2e8f0">–</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">ساعة موفرة / شهر</div>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:.9rem;text-align:center">
+        <div id="wow-money" style="font-size:26px;font-weight:800;color:#e2e8f0">–</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">ريال موفر / شهر</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(5,150,105,.12));border:1px solid rgba(16,185,129,.35);border-radius:12px;padding:1.1rem;text-align:center;grid-column:span 2">
+        <div style="font-size:11px;color:#86efac;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">💰 إجمالي التوفير السنوي</div>
+        <div id="wow-year" style="font-size:32px;font-weight:800;color:#4ade80">–</div>
+        <div style="font-size:10px;color:#86efac;margin-top:3px">ريال سعودي في السنة الأولى</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:1.25rem">
+    <div style="font-size:.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:1rem">③ Investor Dashboard</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+      <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:1rem;text-align:center">
+        <div id="wow-c1" style="font-size:26px;font-weight:700;color:#6366f1">0</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">شركة تستخدم المنصة</div>
+        <div style="font-size:11px;color:#4ade80;margin-top:4px;font-weight:700">+12 هذا الشهر</div>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:1rem;text-align:center">
+        <div id="wow-c2" style="font-size:26px;font-weight:700;color:#6366f1">0</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">مليون سجل نُظِّف</div>
+        <div style="font-size:11px;color:#4ade80;margin-top:4px;font-weight:700">+340K هذا الأسبوع</div>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:1rem;text-align:center">
+        <div id="wow-c3" style="font-size:26px;font-weight:700;color:#6366f1">0</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">ساعة وُفِّرت</div>
+        <div style="font-size:11px;color:#4ade80;margin-top:4px;font-weight:700">تحديث فوري</div>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:1rem;text-align:center">
+        <div id="wow-c4" style="font-size:26px;font-weight:700;color:#6366f1">0</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">نسبة رضا العملاء</div>
+        <div style="font-size:11px;color:#4ade80;margin-top:4px;font-weight:700">آخر 30 يوم</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+    <!-- Sector Templates -->
+    <div style="margin-bottom:.75rem;font-weight:700;font-size:.9rem;color:var(--muted)" data-ar="قوالب القطاعات" data-en="Sector Templates">قوالب القطاعات</div>
+    <div class="sector-row">
+      <button class="btn-sector" onclick="applySectorTemplate('restaurant')" data-ar="🍽️ مطاعم" data-en="🍽️ Restaurants">🍽️ مطاعم</button>
+      <button class="btn-sector" onclick="applySectorTemplate('retail')" data-ar="🛒 متاجر" data-en="🛒 Retail">🛒 متاجر</button>
+      <button class="btn-sector" onclick="applySectorTemplate('clinic')" data-ar="🏥 عيادات" data-en="🏥 Clinics">🏥 عيادات</button>
+      <button class="btn-sector" onclick="applySectorTemplate('construction')" data-ar="🏗️ مقاولات" data-en="🏗️ Construction">🏗️ مقاولات</button>
+    </div>
+
+    <!-- Operations Log -->
+    <div class="ops-log" id="ops-log">
+      <div class="ops-log-header" onclick="toggleOpsLog()">
+        <span data-ar="📋 سجل العمليات" data-en="📋 Operations Log">📋 سجل العمليات</span>
+        <span id="ops-log-toggle">▼</span>
+      </div>
+      <div class="ops-log-body" id="ops-log-body">
+        <button class="btn-global-undo" onclick="globalUndo()" data-ar="↩️ تراجع عن آخر عملية" data-en="↩️ Undo Last Operation">↩️ تراجع عن آخر عملية</button>
+        <div id="ops-entries"></div>
+      </div>
+    </div>
+
+  </div>
 </section>
 
-<footer>
-  <p>DataCell &copy; 2026 | مُطابق لمتطلبات سدايا / SDAIA 🛡️</p>
+<!-- SCREEN 6: EXPORT -->
+<section class="screen" id="screen-export">
+  <nav class="nav">
+    <div class="logo-text">DataCell</div>
+    <div class="nav-actions">
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem" onclick="resetAll()" data-ar="🏠 الرئيسية" data-en="🏠 Home">🏠 الرئيسية</button>
+      <button class="btn-lang" onclick="toggleLang()">EN</button>
+    </div>
+  </nav>
+  <div class="export-content">
+    <h2 style="margin-bottom:1.5rem;font-size:1.5rem" data-ar="تصدير النتائج" data-en="Export Results">تصدير النتائج</h2>
+
+    <div class="export-card" onclick="exportCSV()">
+      <div class="export-icon">⬇️</div>
+      <div>
+        <div class="export-title" data-ar="حمّل الملف النظيف (CSV)" data-en="Download Clean File (CSV)">حمّل الملف النظيف (CSV)</div>
+        <div class="export-desc" data-ar="UTF-8 مع BOM لدعم العربية في Excel" data-en="UTF-8 with BOM for Arabic Excel support">UTF-8 مع BOM لدعم العربية في Excel</div>
+      </div>
+    </div>
+
+    <div class="export-card" onclick="exportPDF()">
+      <div class="export-icon">📄</div>
+      <div>
+        <div class="export-title" data-ar="حمّل تقرير PDF" data-en="Download PDF Report">حمّل تقرير PDF</div>
+        <div class="export-desc" data-ar="تقرير مفصل يشمل التحليل والرسوم البيانية" data-en="Detailed report with analysis and charts">تقرير مفصل يشمل التحليل والرسوم البيانية</div>
+      </div>
+    </div>
+
+    <div class="share-card" id="share-card">
+      <div style="font-weight:700;margin-bottom:1rem" data-ar="ملخص قابل للمشاركة" data-en="Shareable Summary">ملخص قابل للمشاركة</div>
+      <div id="share-stats"></div>
+    </div>
+
+    <button class="btn-primary" style="width:100%;margin-top:1.5rem;padding:1rem;font-size:1rem" onclick="resetAll()" data-ar="🔄 ابدأ من جديد" data-en="🔄 Start Over">🔄 ابدأ من جديد</button>
+  </div>
+</section>
+
+<!-- SCREEN ANALYTICS -->
+<section class="screen" id="screen-analytics">
+  <nav class="nav">
+    <div class="logo-text">DataCell</div>
+    <div class="nav-actions">
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem" onclick="resetAll()" data-ar="🏠 الرئيسية" data-en="🏠 Home">🏠 الرئيسية</button>
+      <button class="btn-presentation" onclick="openAnalyticsPresentation()" data-ar="وضع العرض 📊" data-en="Presentation 📊">وضع العرض 📊</button>
+      <button class="btn-lang" onclick="toggleLang()">EN</button>
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem" onclick="exportAnalyticsPDF()" data-ar="📄 PDF" data-en="📄 PDF">📄 PDF</button>
+      <button class="btn-secondary" style="margin:0;padding:.35rem .85rem;font-size:.8rem" onclick="goToExport()" data-ar="تصدير ⬇️" data-en="Export ⬇️">تصدير ⬇️</button>
+    </div>
+  </nav>
+  <div class="analytics-content">
+
+    <!-- Detected type + filters active -->
+    <div id="detected-type-badge" style="margin-bottom:.5rem"></div>
+
+    <!-- Section 1: Executive Summary -->
+    <div class="analytics-section-title">⚡ <span data-ar="ملخص تنفيذي" data-en="Executive Summary">ملخص تنفيذي</span></div>
+    <div class="exec-summary-grid" id="exec-summary"></div>
+
+    <!-- Section 6: Data Slicer (shown early for context filtering) -->
+    <div class="analytics-section-title" id="slicer-title">🔪 <span data-ar="فلترة وتقطيع البيانات" data-en="Data Slicer">فلترة وتقطيع البيانات</span></div>
+    <div class="slicer-wrap" id="data-slicer"></div>
+
+    <!-- Section 2: Charts -->
+    <div class="analytics-section-title">📊 <span data-ar="الرسوم البيانية" data-en="Charts">الرسوم البيانية</span></div>
+    <div class="analytics-charts-grid" id="analytics-charts-grid"></div>
+
+    <!-- Top 10 Table -->
+    <div class="analytics-section-title">🏆 <span data-ar="أعلى 10 قيم" data-en="Top 10 Values">أعلى 10 قيم</span></div>
+    <div id="top10-container"></div>
+
+    <!-- Section 3: AI Insights -->
+    <div class="analytics-section-title">🤖 <span data-ar="التحليل الذكي" data-en="Smart Insights">التحليل الذكي</span></div>
+    <div class="ai-analytics-grid" id="ai-analytics-insights"></div>
+
+    <!-- Section 4: Column Profiler -->
+    <div class="analytics-section-title">🔬 <span data-ar="تحليل الأعمدة" data-en="Column Profiler">تحليل الأعمدة</span></div>
+    <div id="column-profiler"></div>
+
+    <!-- Section 5: Column Comparison -->
+    <div class="analytics-section-title">⚖️ <span data-ar="مقارنة الأعمدة" data-en="Column Comparison">مقارنة الأعمدة</span></div>
+    <div id="column-comparison"></div>
+
+    <!-- Full PDF Export -->
+    <div style="text-align:center;margin-top:2rem">
+      <button class="btn-primary" style="padding:1rem 2.5rem;font-size:1rem" onclick="exportAnalyticsPDF()" data-ar="📄 حمّل التقرير الكامل" data-en="📄 Download Full Report">📄 حمّل التقرير الكامل</button>
+    </div>
+  </div>
+</section>
+<!-- App Logic -->
+
+<!-- SDAIA FOOTER -->
+<footer class="sdaia-footer">
+  <div class="sdaia-footer-inner">
+    <span>DataCell &copy; 2025 Abdu Abdella Ahmed</span>
+    <span class="sdaia-sep">|</span>
+    <span data-ar="مُطابق لمتطلبات" data-en="Compliant with">مُطابق لمتطلبات</span>
+    <span class="sdaia-badge-ft">🛡️ سدايا / SDAIA</span>
+    <span class="sdaia-badge-ft">📋 PDPL</span>
+    <span class="sdaia-badge-ft">🔒 Zero-Persistence</span>
+  </div>
 </footer>
-
-<script>
-let rawData = [];
-let cleanData = [];
-let headers = [];
-let rawHeaders = [];
-let problems = { duplicates: 0, emptyCells: 0, outliers: 0, emptyColumns: 0 };
-const EMPTY_VALS = new Set(['', 'null', 'undefined', 'n/a', 'na', 'none', 'nil', 'missing', '?', '؟', 'لا يوجد', 'لا توجد', 'غير متاح', '-', '--', '#n/a', 'nan']);
-
-function handleFile(e) {
-  const file = e.target.files[0];
-  if (file) processFile(file);
-}
-
-function processFile(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array', codepage: 65001 }); // حل مشكلة الرموز
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
-      
-      if (!json || json.length === 0) { alert("الملف فارغ"); return; }
-      
-      rawData = json;
-      headers = Object.keys(json[0]);
-      rawHeaders = [...headers];
-      
-      showScreen('processing');
-      document.getElementById('progress-bar').style.width = '100%';
-      
-      setTimeout(() => {
-        analyzeData();
-        showDiagnosis();
-      }, 1500);
-    } catch(err) { alert("خطأ في القراءة"); }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function analyzeData() {
-  problems = { duplicates: 0, emptyCells: 0, outliers: 0, emptyColumns: 0 };
-  const seenRows = new Set();
-  rawData.forEach(row => {
-    let key = JSON.stringify(row);
-    if (seenRows.has(key)) problems.duplicates++; else seenRows.add(key);
-    headers.forEach(h => { if (EMPTY_VALS.has(String(row[h]).trim().toLowerCase())) problems.emptyCells++; });
-  });
-}
-
-function showDiagnosis() {
-  showScreen('diagnosis');
-  const badges = document.querySelectorAll('.problem-badge span');
-  badges[0].textContent = `خلايا فارغة (${problems.emptyCells})`;
-  badges[1].textContent = `صفوف مكررة (${problems.duplicates})`;
-  renderTable('preview-table', rawData.slice(0, 10));
-}
-
-function startCleaning() {
-  showScreen('cleaning');
-  setTimeout(() => {
-    const seen = new Set();
-    cleanData = rawData.filter(row => {
-      let key = JSON.stringify(row);
-      if (seen.has(key)) return false;
-      seen.add(key); return true;
-    }).map(row => {
-      let newRow = {};
-      Object.keys(row).forEach(k => {
-        newRow[k] = typeof row[k] === 'string' ? row[k].trim().replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '') : row[k];
-      });
-      return newRow;
-    });
-    showInsights();
-  }, 1500);
-}
-
-function showInsights() {
-  showScreen('insights');
-  renderTable('clean-table-before', rawData.slice(0, 5));
-  renderTable('clean-table-after', cleanData.slice(0, 5));
-  document.getElementById('before-row-count').textContent = `(${rawData.length})`;
-  document.getElementById('after-row-count').textContent = `(${cleanData.length})`;
-}
-
-function renderTable(tableId, data) {
-  const tbl = document.getElementById(tableId);
-  if (!tbl || data.length === 0) return;
-  const ths = "<thead><tr>" + rawHeaders.map(h => `<th>${h}</th>`).join('') + "</tr></thead>";
-  const trs = "<tbody>" + data.map(row => "<tr>" + rawHeaders.map(col => `<td>${row[col] || ''}</td>`).join('') + "</tr>").join('') + "</tbody>";
-  tbl.innerHTML = ths + trs;
-}
-
-function exportCSV() {
-  const ws = XLSX.utils.json_to_sheet(cleanData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Cleaned");
-  XLSX.writeFile(wb, "DataCell_Cleaned.xlsx");
-}
-
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + id).classList.add('active');
-}
-</script>
+<script src="./src/lib/datacell.js" type="module"></script>
 </body>
 </html>
