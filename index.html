@@ -1,198 +1,202 @@
-// ═══════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════
-let lang = 'ar';
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <meta name="description" content="DataCell — منصة تنظيف وتحليل البيانات للشركات السعودية." />
+  <title>DataCell — نظّف بياناتك</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* التنسيق الملكي باللون الأسود والأزرق التقني */
+    :root {
+      --bg: #050505;
+      --card: #111111;
+      --primary: #38bdf8;
+      --text: #f8fafc;
+      --muted: #64748b;
+    }
+    body { font-family: 'Tajawal', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; }
+    .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+    .screen.active { display: flex; }
+    .logo-text { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 20px 0; }
+    .hero-logo { font-size: 4rem; font-weight: 900; letter-spacing: -2px; margin: 10px 0; }
+    .drop-zone {
+      width: 100%; max-width: 600px; height: 250px; border: 2px dashed #333; border-radius: 24px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--primary); color: #000; border: none; padding: 14px 40px;
+      border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 20px;
+    }
+    .data-table-wrap { width: 100%; max-width: 1100px; background: var(--card); border-radius: 16px; overflow-x: auto; margin-top: 20px; border: 1px solid #222; }
+    table { width: 100%; border-collapse: collapse; text-align: right; }
+    th { background: #1a1a1a; color: var(--primary); padding: 12px; border: 1px solid #222; }
+    td { padding: 10px; border: 1px solid #222; font-size: 0.85rem; color: #cbd5e1; }
+    .progress-bar-outer { width: 100%; max-width: 400px; height: 8px; background: #222; border-radius: 4px; margin-top: 20px; overflow: hidden; }
+    .progress-bar-inner { width: 0%; height: 100%; background: var(--primary); transition: width 1s ease; }
+    footer { padding: 40px 20px; text-align: center; border-top: 1px solid #111; font-size: 0.8rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<section class="screen active" id="screen-landing">
+  <div class="logo-text">DataCell</div>
+  <div class="hero-logo">DataCell</div>
+  <p style="color:var(--muted)">نظّف بياناتك. افهم أرقامك. في ثوانٍ.</p>
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div style="font-size: 3rem">📂</div>
+    <h3>اسحب ملفك هنا أو انقر للاختيار</h3>
+    <p>CSV • XLSX • XLS</p>
+  </div>
+  <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
+</section>
+
+<section class="screen" id="screen-processing">
+  <div style="font-size: 5rem; margin-top: 20vh">⟳</div>
+  <h2>جاري المعالجة...</h2>
+  <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
+</section>
+
+<section class="screen" id="screen-diagnosis">
+  <h2>🔍 تحليل البيانات</h2>
+  <div style="display:flex; gap:10px; margin-bottom:20px">
+    <div class="problem-badge" style="background:#1a1a1a; padding:10px 20px; border-radius:10px; border:1px solid #333"><span>خلايا فارغة</span></div>
+    <div class="problem-badge" style="background:#1a1a1a; padding:10px 20px; border-radius:10px; border:1px solid #333"><span>صفوف مكررة</span></div>
+  </div>
+  <div class="data-table-wrap"><table id="preview-table"></table></div>
+  <button class="btn-primary" onclick="startCleaning()">✨ نظّف كل شيء تلقائياً</button>
+</section>
+
+<section class="screen" id="screen-cleaning">
+  <div style="font-size: 6rem; font-weight: 900; color: var(--primary); margin-top: 20vh">✨</div>
+  <h2>جاري التنظيف الآن...</h2>
+</section>
+
+<section class="screen" id="screen-insights">
+  <h2>✅ تم التنظيف بنجاح</h2>
+  <div style="display:flex; gap:20px; width:100%; max-width:1100px">
+    <div style="flex:1">
+      <p style="text-align:center; color:var(--muted)">قبل <span id="before-row-count"></span></p>
+      <div class="data-table-wrap"><table id="clean-table-before"></table></div>
+    </div>
+    <div style="flex:1">
+      <p style="text-align:center; color:var(--primary)">بعد <span id="after-row-count"></span></p>
+      <div class="data-table-wrap"><table id="clean-table-after"></table></div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="exportCSV()">⬇️ تحميل الملف النظيف</button>
+  <button class="btn-primary" style="background:#222; color:#fff" onclick="location.reload()">🔄 ابدأ من جديد</button>
+</section>
+
+<footer>
+  <p>DataCell &copy; 2026 | مُطابق لمتطلبات سدايا / SDAIA 🛡️</p>
+</footer>
+
+<script>
 let rawData = [];
 let cleanData = [];
 let headers = [];
 let rawHeaders = [];
-let filename = '';
 let problems = { duplicates: 0, emptyCells: 0, outliers: 0, emptyColumns: 0 };
+const EMPTY_VALS = new Set(['', 'null', 'undefined', 'n/a', 'na', 'none', 'nil', 'missing', '?', '؟', 'لا يوجد', 'لا توجد', 'غير متاح', '-', '--', '#n/a', 'nan']);
 
-const EMPTY_VALS = new Set([
-  '', 'null', 'undefined', 'n/a', 'na', 'none', 'nil', 'missing', '?', '؟',
-  'لا يوجد', 'لا توجد', 'غير متاح', '-', '--', '#n/a', 'nan'
-]);
-
-// ═══════════════════════════════════════════════════════
-// FILE HANDLING
-// ═══════════════════════════════════════════════════════
 function handleFile(e) {
   const file = e.target.files[0];
   if (file) processFile(file);
 }
 
-function handleDrop(e) {
-  e.preventDefault();
-  const file = e.dataTransfer.files[0];
-  if (file) processFile(file);
-}
-
 function processFile(file) {
-  filename = file.name;
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
       const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array' });
+      const wb = XLSX.read(data, { type: 'array', codepage: 65001 }); // حل مشكلة الرموز
       const ws = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
       
-      if (!json || json.length === 0) {
-        alert("الملف فارغ أو غير صالحة بياناته");
-        return;
-      }
-
+      if (!json || json.length === 0) { alert("الملف فارغ"); return; }
+      
       rawData = json;
       headers = Object.keys(json[0]);
       rawHeaders = [...headers];
-      startProcessing();
-    } catch(err) {
-      alert("خطأ في قراءة ملف الإكسل");
-    }
+      
+      showScreen('processing');
+      document.getElementById('progress-bar').style.width = '100%';
+      
+      setTimeout(() => {
+        analyzeData();
+        showDiagnosis();
+      }, 1500);
+    } catch(err) { alert("خطأ في القراءة"); }
   };
   reader.readAsArrayBuffer(file);
-}
-
-function startProcessing() {
-  showScreen('processing');
-  const bar = document.getElementById('progress-bar');
-  if (bar) bar.style.width = '100%';
-  
-  setTimeout(() => {
-    analyzeData();
-    showDiagnosis();
-  }, 1500);
-}
-
-// ═══════════════════════════════════════════════════════
-// ANALYSIS (منطق اكتشاف الأخطاء الحقيقي)
-// ═══════════════════════════════════════════════════════
-function isEmpty(v) {
-  if (v === null || v === undefined) return true;
-  return EMPTY_VALS.has(String(v).trim().toLowerCase());
 }
 
 function analyzeData() {
   problems = { duplicates: 0, emptyCells: 0, outliers: 0, emptyColumns: 0 };
   const seenRows = new Set();
-
-  headers.forEach(col => {
-    // 1. كشف الأعمدة الفارغة تماماً
-    if (rawData.every(r => isEmpty(r[col]))) problems.emptyColumns++;
-    
-    // 2. كشف القيم الشاذة (إحصائياً)
-    let nums = rawData.map(r => parseFloat(String(r[col]).replace(/,/g,''))).filter(n => !isNaN(n));
-    if (nums.length > 5) {
-      let avg = nums.reduce((a,b) => a+b) / nums.length;
-      let std = Math.sqrt(nums.map(x => Math.pow(x - avg, 2)).reduce((a,b) => a+b) / nums.length);
-      rawData.forEach(r => {
-        let n = parseFloat(String(r[col]).replace(/,/g,''));
-        if (!isNaN(n) && Math.abs(n - avg) > std * 2.5) problems.outliers++;
-      });
-    }
-  });
-
   rawData.forEach(row => {
-    // 3. كشف المكررات
-    let rowKey = JSON.stringify(row);
-    if (seenRows.has(rowKey)) problems.duplicates++;
-    else seenRows.add(rowKey);
-
-    // 4. كشف الفراغات
-    headers.forEach(h => { if (isEmpty(row[h])) problems.emptyCells++; });
+    let key = JSON.stringify(row);
+    if (seenRows.has(key)) problems.duplicates++; else seenRows.add(key);
+    headers.forEach(h => { if (EMPTY_VALS.has(String(row[h]).trim().toLowerCase())) problems.emptyCells++; });
   });
 }
 
-// ═══════════════════════════════════════════════════════
-// DIAGNOSIS (تحديث واجهة التقرير)
-// ═══════════════════════════════════════════════════════
 function showDiagnosis() {
   showScreen('diagnosis');
-  
-  // تحديث عدادات المشاكل في الواجهة
   const badges = document.querySelectorAll('.problem-badge span');
-  if (badges.length >= 2) {
-    badges[0].textContent = (lang === 'ar' ? `خلايا فارغة` : `Empty Cells`) + ` (${problems.emptyCells})`;
-    badges[1].textContent = (lang === 'ar' ? `صفوف مكررة` : `Duplicates`) + ` (${problems.duplicates})`;
-  }
-
-  // رندر الجدول الصغير للمعاينة
-  if (typeof renderPreviewTable === 'function') renderPreviewTable();
+  badges[0].textContent = `خلايا فارغة (${problems.emptyCells})`;
+  badges[1].textContent = `صفوف مكررة (${problems.duplicates})`;
+  renderTable('preview-table', rawData.slice(0, 10));
 }
 
-// ═══════════════════════════════════════════════════════
-// CLEANING (منطق التنظيف الفعلي)
-// ═══════════════════════════════════════════════════════
 function startCleaning() {
   showScreen('cleaning');
-  
   setTimeout(() => {
     const seen = new Set();
-    // تنفيذ التنظيف: حذف مكررات + مسح مسافات
     cleanData = rawData.filter(row => {
       let key = JSON.stringify(row);
       if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+      seen.add(key); return true;
     }).map(row => {
       let newRow = {};
       Object.keys(row).forEach(k => {
-        newRow[k] = typeof row[k] === 'string' ? row[k].trim() : row[k];
+        newRow[k] = typeof row[k] === 'string' ? row[k].trim().replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '') : row[k];
       });
       return newRow;
     });
-
     showInsights();
-  }, 2000);
-}
-
-// ═══════════════════════════════════════════════════════
-// INSIGHTS & COMPARISON (إصلاح الرموز والعرض)
-// ═══════════════════════════════════════════════════════
-function renderComparisonTable(tableId, data) {
-  const tbl = document.getElementById(tableId);
-  if (!tbl) return;
-  const preview = data.slice(0, 10);
-
-  const ths = `<tr>${rawHeaders.map(h => `<th style="text-align:right; background:#111; color:#0f0; padding:10px; font-size:12px;">${h}</th>`).join('')}</tr>`;
-  
-  const trs = preview.map(row => {
-    const tds = rawHeaders.map(col => {
-      let val = (row[col] === null || row[col] === undefined) ? '' : String(row[col]);
-      return `<td style="text-align:right; padding:8px; border-bottom:1px solid #222; white-space:nowrap; direction:rtl; font-size:12px;">${val}</td>`;
-    }).join('');
-    return `<tr>${tds}</tr>`;
-  }).join('');
-
-  tbl.innerHTML = `<thead>${ths}</thead><tbody>${trs}</tbody>`;
+  }, 1500);
 }
 
 function showInsights() {
   showScreen('insights');
-  renderComparisonTable('clean-table-before', rawData);
-  renderComparisonTable('clean-table-after', cleanData);
-  
-  // تحديث عدادات قبل وبعد
-  const bCount = document.getElementById('before-row-count');
-  const aCount = document.getElementById('after-row-count');
-  if (bCount) bCount.textContent = `(${rawData.length})`;
-  if (aCount) aCount.textContent = `(${cleanData.length})`;
+  renderTable('clean-table-before', rawData.slice(0, 5));
+  renderTable('clean-table-after', cleanData.slice(0, 5));
+  document.getElementById('before-row-count').textContent = `(${rawData.length})`;
+  document.getElementById('after-row-count').textContent = `(${cleanData.length})`;
+}
+
+function renderTable(tableId, data) {
+  const tbl = document.getElementById(tableId);
+  if (!tbl || data.length === 0) return;
+  const ths = "<thead><tr>" + rawHeaders.map(h => `<th>${h}</th>`).join('') + "</tr></thead>";
+  const trs = "<tbody>" + data.map(row => "<tr>" + rawHeaders.map(col => `<td>${row[col] || ''}</td>`).join('') + "</tr>").join('') + "</tbody>";
+  tbl.innerHTML = ths + trs;
+}
+
+function exportCSV() {
+  const ws = XLSX.utils.json_to_sheet(cleanData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Cleaned");
+  XLSX.writeFile(wb, "DataCell_Cleaned.xlsx");
 }
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const target = document.getElementById('screen-' + id);
-  if (target) target.classList.add('active');
+  document.getElementById('screen-' + id).classList.add('active');
 }
-
-// ═══════════════════════════════════════════════════════
-// GLOBAL EXPORTS
-// ═══════════════════════════════════════════════════════
-window.handleFile = handleFile;
-window.handleDrop = handleDrop;
-window.startCleaning = startCleaning;
-window.showInsights = showInsights;
-window.loadSampleData = () => { 
-  alert("يرجى رفع ملف Excel حقيقي لتجربة التنظيف");
-};
+</script>
+</body>
+</html>
