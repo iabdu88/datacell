@@ -1,4 +1,3 @@
-
 // ═══════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════
@@ -14,13 +13,13 @@ let opsLog = [];
 let chatHistory = [];
 let dataContext = '';
 let processingStart = 0;
-
+ 
 const EMPTY_VALS = new Set([
   '', 'null', 'undefined', 'n/a', 'na', 'none', 'nil', 'missing', '?', '؟',
   'لا يوجد', 'لا توجد', 'غير متاح', 'غير متوفر', 'غير محدد', 'غير معروف',
   'مجهول', '-', '--', '---', '#n/a', '#null!', '#value!', 'nan'
 ]);
-
+ 
 // ═══════════════════════════════════════════════════════
 // HIJRI CONVERSION
 // ═══════════════════════════════════════════════════════
@@ -40,7 +39,7 @@ function gregorianToHijri(y, m, d) {
   const HM = ['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
   return `${hd} ${HM[hm-1]} ${hy}`;
 }
-
+ 
 function formatDateBoth(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
@@ -48,7 +47,7 @@ function formatDateBoth(dateStr) {
   const hijri = gregorianToHijri(d.getFullYear(), d.getMonth()+1, d.getDate());
   return `${greg} | ${hijri}`;
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // LANGUAGE
 // ═══════════════════════════════════════════════════════
@@ -64,7 +63,7 @@ function toggleLang() {
   const chatPlaceholder = document.getElementById('chat-input');
   if (chatPlaceholder) chatPlaceholder.placeholder = lang === 'ar' ? 'اكتب سؤالك...' : 'Type your question...';
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // SCREENS
 // ═══════════════════════════════════════════════════════
@@ -75,7 +74,7 @@ function showScreen(id) {
   const showChat = ['diagnosis', 'insights', 'export'].includes(id);
   document.getElementById('chat-btn').classList.toggle('show', showChat);
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // SAMPLE DATA
 // ═══════════════════════════════════════════════════════
@@ -123,7 +122,7 @@ function generateSampleData() {
   rows.forEach(r => { r['ملاحظات'] = ''; r['رمز_إضافي'] = ''; });
   return rows;
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // FILE HANDLING
 // ═══════════════════════════════════════════════════════
@@ -170,7 +169,7 @@ function loadSampleData() {
   headers = Object.keys(rawData[0]);
   startProcessing();
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // PROCESSING
 // ═══════════════════════════════════════════════════════
@@ -199,7 +198,7 @@ function startProcessing() {
     setTimeout(() => { stopParticles(); showDiagnosis(); }, 400);
   }, 2500);
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // ANALYSIS
 // ═══════════════════════════════════════════════════════
@@ -213,7 +212,7 @@ function isDate(v) {
   const s = String(v);
   return /\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}/.test(s) || !isNaN(Date.parse(s));
 }
-
+ 
 // ─── Duplicate Detection ────────────────────────────────
 // Returns { count, problemCells }
 // count = number of EXTRA copies (originals not counted)
@@ -230,7 +229,7 @@ function normalizeCell(v) {
     .replace(/\s+/g, ' ')                       // collapse multiple spaces
     .trim()
     .toLowerCase();
-
+ 
   // Canonicalise plain numbers: strip thousands-commas, then parse
   // "1,234.50" → 1234.5 → "1234.5"  |  "007" stays "007" (leading zeros → keep as text)
   const noCommas = s.replace(/,/g, '');
@@ -239,12 +238,12 @@ function normalizeCell(v) {
   }
   return s;
 }
-
+ 
 // Return how many unique normalised values col has across all rows
 function colUniqueCount(data, col) {
   return new Set(data.map(r => normalizeCell(r[col]))).size;
 }
-
+ 
 // Heuristic: a column is a "unique-ID" column if every row has a distinct value
 // AND (name looks like an ID  OR  values look like sequential numbers / GUIDs)
 function isUniqueIdCol(data, col) {
@@ -259,7 +258,7 @@ function isUniqueIdCol(data, col) {
   const allPrefixed = sample.every(v => /^[a-z]{1,5}\d+$/i.test(v));
   return allNumeric || allPrefixed;
 }
-
+ 
 function runDupPass(data, cols) {
   const makeKey = row => cols.map(h => normalizeCell(row[h])).join('\x1F');
   const rowCounts = new Map();
@@ -286,14 +285,14 @@ function runDupPass(data, cols) {
   });
   return { count, cells, partner };
 }
-
+ 
 function detectDuplicates(data, cols) {
   if (!data.length || !cols.length) return { count: 0, cells: {}, excludedCols: [] };
-
+ 
   // Pass A: compare ALL columns
   const resultA = runDupPass(data, cols);
   if (resultA.count > 0) return { ...resultA, excludedCols: [] };
-
+ 
   // Pass B: exclude columns that are all-unique (likely ID / serial columns)
   const idCols = cols.filter(c => isUniqueIdCol(data, c));
   if (idCols.length === 0) return { count: 0, cells: {}, excludedCols: [] };
@@ -302,11 +301,11 @@ function detectDuplicates(data, cols) {
   const resultB = runDupPass(data, dataCols);
   return { ...resultB, excludedCols: idCols };
 }
-
+ 
 function analyzeData() {
   problems = { duplicates: 0, emptyCells: 0, formatIssues: 0, outliers: 0, emptyColumns: 0 };
   const problemCells = {};
-
+ 
   // Duplicates
   const dupResult = detectDuplicates(rawData, headers);
   problems.duplicates = dupResult.count;
@@ -317,7 +316,7 @@ function analyzeData() {
     if (!problemCells[ri]) problemCells[ri] = {};
     Object.assign(problemCells[ri], cols);
   });
-
+ 
   // Empty cells + format issues
   headers.forEach(col => {
     rawData.forEach((row, ri) => {
@@ -329,13 +328,13 @@ function analyzeData() {
       }
     });
   });
-
+ 
   // Empty columns
   headers.forEach(col => {
     const allEmpty = rawData.every(r => isEmpty(r[col]));
     if (allEmpty) problems.emptyColumns++;
   });
-
+ 
   // Outliers — use IQR method (robust against outliers skewing the mean/std)
   headers.forEach(col => {
     const nums = rawData
@@ -358,7 +357,7 @@ function analyzeData() {
       }
     });
   });
-
+ 
   // Format issues (mixed date formats — strict regex only, no Date.parse, minority cells only)
   const DATE_PATTERNS = [
     { name: 'iso',      re: /^\d{4}-\d{2}-\d{2}($|[T ])/ },   // 2024-01-15
@@ -399,9 +398,9 @@ function analyzeData() {
       }
     });
   });
-
+ 
   problems._cells = problemCells;
-
+ 
   // Build data context for AI
   const numericCols = headers.filter(h => rawData.filter(r => isNumeric(r[h])).length > rawData.length * 0.5);
   const stats = numericCols.slice(0,3).map(col => {
@@ -411,7 +410,7 @@ function analyzeData() {
     const min = Math.min(...nums);
     return `${col}: min=${min.toFixed(2)}, max=${max.toFixed(2)}, avg=${mean.toFixed(2)}`;
   }).join('; ');
-
+ 
   dataContext = `الملف: ${filename}
 الأعمدة: ${headers.join(', ')}
 عدد الصفوف: ${rawData.length}
@@ -419,7 +418,7 @@ function analyzeData() {
 إحصائيات: ${stats}
 المشاكل: ${problems.duplicates} صفوف مكررة, ${problems.emptyCells} خلية فارغة, ${problems.outliers} قيمة شاذة`;
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // DIAGNOSIS DASHBOARD
 // ═══════════════════════════════════════════════════════
@@ -431,14 +430,14 @@ function showDiagnosis() {
   renderPreviewTable();
   animateGauge();
 }
-
+ 
 function computeQualityScore() {
   const total = rawData.length * headers.length;
   if (!total) return 100;
   const issueCount = problems.duplicates * headers.length + problems.emptyCells + problems.outliers;
   return Math.max(0, Math.round(100 - (issueCount / total * 100)));
 }
-
+ 
 function animateGauge() {
   const score = computeQualityScore();
   const ring = document.getElementById('gauge-ring');
@@ -455,7 +454,7 @@ function animateGauge() {
     if (current >= score) clearInterval(anim);
   }, 20);
 }
-
+ 
 function renderFileSummary() {
   const el = document.getElementById('file-summary-content');
   const uniqueRows   = problems._uniqueRows ?? rawData.length;
@@ -479,7 +478,7 @@ function renderFileSummary() {
       <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">${lang==='ar'?'عدد الأعمدة':'Columns'}</span><span style="font-weight:600">${headers.length}</span></div>
     </div>${excludeNote}`;
 }
-
+ 
 function renderProblems() {
   const el = document.getElementById('problems-list');
   const items = [
@@ -503,7 +502,7 @@ function renderProblems() {
   }).join('');
   setTimeout(() => el.querySelectorAll('.problem-badge').forEach(b => b.classList.add('show')), 100);
 }
-
+ 
 function renderSuggestions() {
   const el = document.getElementById('suggestions-list');
   const suggestions = [];
@@ -536,7 +535,7 @@ function renderSuggestions() {
       </div>
     </div>`).join('');
 }
-
+ 
 function applySuggestion(action, btn) {
   btn.closest('.suggestion-card').style.opacity = '.5';
   btn.closest('.suggestion-card').querySelectorAll('button').forEach(b => b.disabled = true);
@@ -546,13 +545,13 @@ function applySuggestion(action, btn) {
   btn.textContent = '✓';
   btn.style.background = 'rgba(16,185,129,0.4)';
 }
-
+ 
 function renderPreviewTable() {
   const wrap = document.querySelector('.card .data-table-wrap');
   const tbl  = document.getElementById('preview-table');
   const preview = rawData.slice(0, 15);
   const cells   = problems._cells || {};
-
+ 
   // ── Legend ──
   const legendEl = wrap?.previousElementSibling?.nextElementSibling || null;
   const legendHTML = `
@@ -568,9 +567,9 @@ function renderPreviewTable() {
   } else if (wrap && wrap.previousElementSibling?.classList.contains('preview-legend')) {
     wrap.previousElementSibling.outerHTML = legendHTML;
   }
-
+ 
   const dupPartner = problems._dupPartner || {};
-
+ 
   const tipMap = {
     empty:     lang==='ar'?'خلية فارغة'       :'Empty cell',
     duplicate: lang==='ar'?'صف مكرر'          :'Duplicate row',
@@ -578,15 +577,15 @@ function renderPreviewTable() {
     format:    lang==='ar'?'تنسيق تاريخ مختلط' :'Mixed date format',
   };
   const rowIcon = { empty: '⬜', duplicate: '🔁', outlier: '📐', format: '📅' };
-
+ 
   // ── Table ──
   const ths = `<th class="row-type-cell" title="${lang==='ar'?'نوع المشكلة':'Issue type'}">⚠️</th>` +
               headers.map(h => `<th>${h}</th>`).join('');
-
+ 
   const rows = preview.map((row, ri) => {
     const rowCells = cells[ri] || {};
     const flags    = Object.values(rowCells);
-
+ 
     // Priority: outlier > duplicate > format > empty
     // (duplicate wins over empty because having a duplicate row is the primary issue)
     const dominant = flags.includes('outlier')   ? 'outlier'
@@ -594,7 +593,7 @@ function renderPreviewTable() {
                    : flags.includes('format')    ? 'format'
                    : flags.includes('empty')     ? 'empty'
                    : null;
-
+ 
     // Build the row-badge tooltip — for duplicates, show partner row number
     let rowTip = dominant ? tipMap[dominant] : '';
     if (dominant === 'duplicate' && dupPartner[ri] != null) {
@@ -603,9 +602,9 @@ function renderPreviewTable() {
         ? `🔁 صف مكرر — نسخة منه في الصف ${partnerRow}`
         : `🔁 Duplicate row — copy found at row ${partnerRow}`;
     }
-
+ 
     const typeCell = `<td class="row-type-cell" title="${rowTip}">${dominant ? rowIcon[dominant] : ''}</td>`;
-
+ 
     const dataCells = headers.map(col => {
       const v    = String(row[col] ?? '').slice(0, 40);
       const flag = rowCells[col];
@@ -625,13 +624,13 @@ function renderPreviewTable() {
       const tip = cellTip ? `title="${cellTip}"` : '';
       return `<td class="${cls}" ${tip}>${v}</td>`;
     }).join('');
-
+ 
     return `<tr>${typeCell}${dataCells}</tr>`;
   }).join('');
-
+ 
   tbl.innerHTML = `<thead><tr>${ths}</tr></thead><tbody>${rows}</tbody>`;
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // CLEANING
 // ═══════════════════════════════════════════════════════
@@ -642,14 +641,14 @@ function startCleaning() {
   rawHeaders = [...headers];   // snapshot BEFORE cleaning mutates headers
   undoStack.push(JSON.parse(JSON.stringify(cleanData)));
   opsLog = [];
-
+ 
   const counter = document.getElementById('cleaning-counter');
   const zone = document.getElementById('row-anim-zone');
   zone.innerHTML = '';
-
+ 
   let removed = 0, fixed = 0, step = 0;
   const totalSteps = rawData.length;
-
+ 
   const animInterval = setInterval(() => {
     if (step < Math.min(8, totalSteps)) {
       const div = document.createElement('div');
@@ -667,7 +666,7 @@ function startCleaning() {
       counter.textContent = removed + fixed;
     }
   }, 50);
-
+ 
   setTimeout(() => {
     clearInterval(animInterval);
     stopParticles();
@@ -677,15 +676,15 @@ function startCleaning() {
     setTimeout(() => showInsights(), 1500);
   }, 2500);
 }
-
+ 
 function performCleaning() {
   undoStack.push(JSON.parse(JSON.stringify(cleanData)));
   if (undoStack.length > 20) undoStack.shift();
-
+ 
   // ── 1. Trim ALL strings first (prerequisite for correct empty detection) ──
   cleanData.forEach(r => headers.forEach(h => { if (typeof r[h] === 'string') r[h] = r[h].trim(); }));
   addOp(`✂️ ${lang==='ar'?'إزالة المسافات الزائدة من كل الخلايا':'Trimmed extra spaces from all cells'}`);
-
+ 
   // ── 2. Remove duplicate rows using normalizeCell (consistent with detection) ──
   const seen = new Set();
   const beforeDup = cleanData.length;
@@ -700,7 +699,7 @@ function performCleaning() {
   });
   const dupRemoved = beforeDup - cleanData.length;
   if (dupRemoved > 0) addOp(`🗑️ ${lang==='ar'?'حُذف '+dupRemoved+' صف مكرر':'Removed '+dupRemoved+' duplicate rows'}`);
-
+ 
   // ── 3. Remove fully empty columns ──
   const emptyHeaders = headers.filter(h => cleanData.every(r => isEmpty(r[h])));
   emptyHeaders.forEach(h => {
@@ -708,14 +707,14 @@ function performCleaning() {
     addOp(`🗑️ ${lang==='ar'?'حُذف عمود فارغ كلياً: '+h:'Removed fully empty column: '+h}`);
   });
   headers = headers.filter(h => !emptyHeaders.includes(h));
-
+ 
   // ── 4. Fill empty cells intelligently (median for numeric, mode for text) ──
   let filled = 0;
   headers.forEach(col => {
     const nonEmpty = cleanData.filter(r => !isEmpty(r[col]));
     const numericVals = nonEmpty.filter(r => isNumeric(r[col])).map(r => parseFloat(String(r[col]).replace(/,/g,'')));
     const isNumericCol = numericVals.length >= nonEmpty.length * 0.5;
-
+ 
     let fillVal;
     if (isNumericCol && numericVals.length > 0) {
       // median for numeric columns
@@ -729,15 +728,15 @@ function performCleaning() {
     } else {
       fillVal = lang === 'ar' ? 'غير محدد' : 'N/A';
     }
-
+ 
     cleanData.forEach(r => {
       if (isEmpty(r[col])) { r[col] = fillVal; filled++; }
     });
   });
   if (filled > 0) addOp(`✏️ ${lang==='ar'?'تم ملء '+filled+' خلية فارغة (وسيط/الأكثر تكراراً)':'Filled '+filled+' empty cells (median/mode)'}`);
-
+ 
   // ── 5. Protect phone/ID columns + Cap outliers using IQR (more robust than 3σ) ──
-
+ 
   // Detect phone/ID columns: 8-12 digit numbers, should stay as strings
   const phoneColSet = new Set();
   headers.forEach(col => {
@@ -764,7 +763,7 @@ function performCleaning() {
     }
   });
   if (phoneColSet.size > 0) addOp(`📱 ${lang==='ar'?'تم حماية وتنسيق '+phoneColSet.size+' عمود جوال/هوية':'Protected '+phoneColSet.size+' phone/ID column(s)'}`);
-
+ 
   // IQR outlier capping — skip phone/ID columns
   let capped = 0;
   headers.forEach(col => {
@@ -788,7 +787,7 @@ function performCleaning() {
     });
   });
   if (capped > 0) addOp(`📐 ${lang==='ar'?'تم ضبط '+capped+' قيمة شاذة (IQR) إلى الحد الطبيعي':'Capped '+capped+' outlier(s) via IQR to normal range'}`);
-
+ 
   // ── 6. Standardize mixed date formats → ISO YYYY-MM-DD ──
   headers.forEach(col => {
     const dateCells = cleanData.filter(r => {
@@ -819,7 +818,7 @@ function performCleaning() {
     if (converted > 0) addOp(`📅 ${lang==='ar'?'توحيد '+converted+' تاريخ في عمود '+col:'Standardized '+converted+' dates in '+col}`);
   });
 }
-
+ 
 function addOp(text) {
   opsLog.push(text);
   const entries = document.getElementById('ops-entries');
@@ -830,7 +829,7 @@ function addOp(text) {
     entries.appendChild(div);
   }
 }
-
+ 
 function undoOp(btn, idx) { btn.disabled = true; btn.textContent = '✓'; globalUndo(); }
 function globalUndo() {
   if (undoStack.length < 2) { showToast(lang==='ar'?'لا يوجد شيء للتراجع عنه':'Nothing to undo', 'error'); return; }
@@ -846,7 +845,7 @@ function toggleOpsLog() {
   body.classList.toggle('open');
   toggle.textContent = body.classList.contains('open') ? '▲' : '▼';
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // INSIGHTS
 // ═══════════════════════════════════════════════════════
@@ -858,11 +857,11 @@ function showInsights() {
   renderAIInsights();
   setTimeout(wowInit, 500);
 }
-
+ 
 function renderComparisonTables() {
   const beforeCols = (rawHeaders.length ? rawHeaders : headers).slice(0, 7);
   const afterCols  = headers.slice(0, 7);
-
+ 
   const buildTable = (data, cols) => {
     const rows = data.slice(0, 12);
     const thead = `<thead><tr>${cols.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
@@ -874,12 +873,12 @@ function renderComparisonTables() {
     ).join('')}</tbody>`;
     return thead + tbody;
   };
-
+ 
   const tBefore = document.getElementById('clean-table-before');
   const tAfter  = document.getElementById('clean-table-after');
   if (tBefore) tBefore.innerHTML = buildTable(rawData,   beforeCols);
   if (tAfter)  tAfter.innerHTML  = buildTable(cleanData, afterCols);
-
+ 
   // Row count badges
   const bc = document.getElementById('before-row-count');
   const ac = document.getElementById('after-row-count');
@@ -889,7 +888,7 @@ function renderComparisonTables() {
     ? `${cleanData.length} صف${saved > 0 ? ' (حُذف '+saved+')' : ''}`
     : `${cleanData.length} rows${saved > 0 ? ' (removed '+saved+')' : ''}`;
 }
-
+ 
 function initSlider() {
   const divider = document.getElementById('comp-divider');
   const before = document.getElementById('comp-before');
@@ -906,7 +905,7 @@ function initSlider() {
     before.style.clipPath = `inset(0 ${100-pct}% 0 0)`;
   });
 }
-
+ 
 function renderStatCards() {
   const elapsed = ((Date.now() - processingStart) / 1000).toFixed(1);
   const improved = rawData.length - cleanData.length;
@@ -938,14 +937,14 @@ function renderStatCards() {
     }, 40);
   });
 }
-
+ 
 function renderCharts() {
   const el = document.getElementById('charts-grid');
   const numericCols = headers.filter(h => cleanData.filter(r => isNumeric(r[h])).length > cleanData.length * 0.4);
   const dateCols = headers.filter(h => cleanData.filter(r => isDate(r[h]) && !isEmpty(r[h])).length > cleanData.length * 0.3);
-
+ 
   let charts = '';
-
+ 
   // Bar Chart
   if (numericCols.length > 0) {
     const col = numericCols[0];
@@ -968,7 +967,7 @@ function renderCharts() {
         <line x1="0" y1="90%" x2="100%" y2="90%" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
       </svg></div>`;
   }
-
+ 
   // Pie Chart
   const cleanPct = rawData.length ? cleanData.length / rawData.length : 1;
   const dirtyPct = 1 - cleanPct;
@@ -984,7 +983,7 @@ function renderCharts() {
       <text x="100" y="30" fill="#10b981" font-size="8">${Math.round(cleanPct*100)}% ${lang==='ar'?'نظيف':'Clean'}</text>
       <text x="100" y="50" fill="#ef4444" font-size="8">${Math.round(dirtyPct*100)}% ${lang==='ar'?'إشكالي':'Issues'}</text>
     </svg></div>`;
-
+ 
   // Line Chart (dates or index)
   if (dateCols.length > 0 && numericCols.length > 0) {
     const col = numericCols[0];
@@ -1000,15 +999,15 @@ function renderCharts() {
         </svg></div>`;
     }
   }
-
+ 
   el.innerHTML = charts;
 }
-
+ 
 function renderAIInsights() {
   const el = document.getElementById('ai-insights');
   const numericCols = headers.filter(h => cleanData.filter(r => isNumeric(r[h])).length > cleanData.length * 0.4);
   const insights = [];
-
+ 
   if (numericCols.length > 0) {
     const col = numericCols[0];
     const nums = cleanData.map(r => parseFloat(String(r[col]).replace(/,/g,''))).filter(n=>!isNaN(n));
@@ -1021,14 +1020,14 @@ function renderAIInsights() {
     insights.push({ icon: '⚠️', text: lang==='ar' ? `عمود ${col2} يحتوي ${emptyRatio.toFixed(0)}% قيم فارغة` : `Column ${col2} has ${emptyRatio.toFixed(0)}% empty values` });
   }
   insights.push({ icon: '✅', text: lang==='ar' ? `البيانات جاهزة للتحليل بعد إزالة ${problems.duplicates} تكرار` : `Data ready after removing ${problems.duplicates} duplicates` });
-
+ 
   el.innerHTML = insights.map((ins,i) => `
     <div class="ai-insight-card" style="animation-delay:${i*0.15}s">
       <div class="ai-insight-icon">${ins.icon}</div>
       <div>${ins.text}</div>
     </div>`).join('');
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // SECTOR TEMPLATES
 // ═══════════════════════════════════════════════════════
@@ -1042,7 +1041,7 @@ function applySectorTemplate(sector) {
   showToast(templates[sector]?.msg || '✓', 'success');
   addOp(`📋 ${lang==='ar'?'قالب القطاع: '+sector:'Sector template: '+sector}`);
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // EXPORT
 // ═══════════════════════════════════════════════════════
@@ -1057,7 +1056,7 @@ function goToExport() {
       <div class="share-stat"><div class="share-num">${problems.duplicates + problems.emptyCells}</div><div class="share-lbl">${lang==='ar'?'مشكلة محلولة':'Issues Fixed'}</div></div>
     </div>`;
 }
-
+ 
 function exportCSV() {
   const BOM = '\uFEFF';
   const lines = [headers.join(',')];
@@ -1084,7 +1083,7 @@ function exportCSV() {
 }
 function exportXLSX() {
   if (!cleanData.length) { showToast(lang==="ar"?"لا توجد بيانات":"No data to export","error"); return; }
-
+ 
   // Detect phone/ID cols to force text format in Excel (prevents .0 suffix)
   const PHONE_RE2 = /^(\+?966|00966|0)?[5][0-9]{7,8}$|^05[0-9]{8}$/;
   const ID_RE2    = /^[12][0-9]{9}$/;
@@ -1096,7 +1095,7 @@ function exportXLSX() {
     const nameHint = /phone|جوال|هاتف|tel|mobile|id|هوية/i.test(h);
     if (isPhone || isID || nameHint) textCols.add(h);
   });
-
+ 
   // Build sheet data with text prefix for phone/ID cells
   const sheetData = cleanData.map(row => {
     const newRow = {};
@@ -1107,23 +1106,23 @@ function exportXLSX() {
     });
     return newRow;
   });
-
+ 
   const ws = XLSX.utils.json_to_sheet(sheetData, { header: headers });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'DataCell');
-
+ 
   // Column widths
   const colWidths = headers.map(h => ({
     wch: Math.max(h.length, ...cleanData.slice(0,50).map(r => String(r[h]||'').length), 12)
   }));
   ws['!cols'] = colWidths;
-
+ 
   const fname = 'datacell_clean_' + (filename||'data').replace(/\.[^.]+$/, '') + '.xlsx';
   XLSX.writeFile(wb, fname);
   showToast(lang==="ar"?"✅ تم تحميل Excel":"✅ Excel Downloaded","success");
 }
-
-
+ 
+ 
 function exportPDF() {
   const now = new Date();
   const hijri = gregorianToHijri(now.getFullYear(), now.getMonth()+1, now.getDate());
@@ -1168,7 +1167,7 @@ function exportPDF() {
   </body></html>`);
   printWin.document.close();
 }
-
+ 
 function resetAll() {
   rawData = []; cleanData = []; headers = []; rawHeaders = []; filename = '';
   problems = {}; undoStack = []; opsLog = [];
@@ -1179,11 +1178,11 @@ function resetAll() {
   document.getElementById('chat-btn').classList.remove('show');
   showScreen('landing');
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // AI CHAT
 // ═══════════════════════════════════════════════════════
-
+ 
 /** Escape HTML special chars to prevent XSS in innerHTML rendering. */
 function escapeHtml(str) {
   return String(str)
@@ -1193,13 +1192,13 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
+ 
 let chatOpen = false;
 function toggleChat() {
   chatOpen = !chatOpen;
   document.getElementById('chat-panel').classList.toggle('open', chatOpen);
 }
-
+ 
 async function sendChat() {
   const input = document.getElementById('chat-input');
   const rawText = input.value.trim();
@@ -1207,7 +1206,7 @@ async function sendChat() {
   if (rawText.length > 2000) { showToast(lang==='ar'?'الرسالة طويلة جداً (2000 حرف كحد أقصى)':'Message too long (max 2000 chars)', 'error'); return; }
   const text = rawText;
   input.value = '';
-
+ 
   const msgEl = document.getElementById('chat-messages');
   msgEl.innerHTML += `<div class="msg-bubble msg-user">${escapeHtml(text)}</div>`;
   const typing = document.createElement('div');
@@ -1215,12 +1214,12 @@ async function sendChat() {
   typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
   msgEl.appendChild(typing);
   msgEl.scrollTop = msgEl.scrollHeight;
-
+ 
   chatHistory.push({ role: 'user', content: text });
   if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-
+ 
   const systemPrompt = `أنت مساعد تحليل البيانات. المستخدم رفع ملف بيانات. إليك ملخص البيانات: ${dataContext}. أجب على أسئلة المستخدم عن هذه البيانات باللغة العربية. كن موجزاً واستخدم الأرقام.`;
-
+ 
   try {
     const res = await fetch('/api/ai/chat', {
       method: 'POST',
@@ -1238,7 +1237,7 @@ async function sendChat() {
   }
   msgEl.scrollTop = msgEl.scrollHeight;
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // PRESENTATION MODE
 // ═══════════════════════════════════════════════════════
@@ -1266,7 +1265,7 @@ function openPresentation() {
     <div class="pres-stat"><div class="stat-number">${problems.emptyCells}</div><div class="stat-label">${lang==='ar'?'خلايا مصلحة':'Cells Fixed'}</div></div>`;
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('presentation-mode').classList.remove('active'); });
-
+ 
 // ═══════════════════════════════════════════════════════
 // PARTICLES
 // ═══════════════════════════════════════════════════════
@@ -1309,7 +1308,7 @@ function stopParticles() {
   if (particleAnim) { cancelAnimationFrame(particleAnim); particleAnim = null; }
   if (particleCanvas) { const ctx = particleCanvas.getContext('2d'); ctx.clearRect(0,0,particleCanvas.width,particleCanvas.height); }
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // CONFETTI
 // ═══════════════════════════════════════════════════════
@@ -1345,7 +1344,7 @@ function showConfetti() {
   }
   draw();
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════════════════
@@ -1356,7 +1355,7 @@ function showToast(msg, type='success') {
   document.body.appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .5s'; setTimeout(() => t.remove(), 500); }, 3000);
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // ANALYTICS MODULE
 // ═══════════════════════════════════════════════════════
@@ -1364,14 +1363,14 @@ let analyticsHeaders = [];
 let analyticsData = [];
 let detectedType = 'generic';
 let activeFilters = {};
-
+ 
 function getAnalyticsData() { return analyticsData.length ? analyticsData : (cleanData.length ? cleanData : rawData); }
 function getFilteredData() {
   const src = getAnalyticsData();
   if (!Object.keys(activeFilters).length) return src;
   return src.filter(row => Object.entries(activeFilters).every(([col,val]) => String(row[col]||'').trim() === val));
 }
-
+ 
 function detectDataType(h) {
   const s = h.join(' ');
   if (/مبيعات|سعر|كمية|منتج/.test(s)) return 'sales';
@@ -1379,7 +1378,7 @@ function detectDataType(h) {
   if (/مخزون|كمية|منتج|مورد/.test(s)) return 'inventory';
   return 'generic';
 }
-
+ 
 function loadSampleForAnalytics() {
   filename = 'بيانات_تجريبية.csv';
   rawData = generateSampleData();
@@ -1387,7 +1386,7 @@ function loadSampleForAnalytics() {
   cleanData = [];
   showAnalytics();
 }
-
+ 
 function showAnalytics() {
   const src = cleanData.length ? cleanData : rawData;
   if (!src.length) { showToast(lang==='ar'?'لا توجد بيانات للتحليل':'No data to analyze','error'); return; }
@@ -1406,7 +1405,7 @@ function showAnalytics() {
   dataContext = `الملف: ${filename}\nالأعمدة: ${analyticsHeaders.join(', ')}\nعدد الصفوف: ${analyticsData.length}\nعينة: ${JSON.stringify(analyticsData.slice(0,5))}\nإحصائيات: ${stats}`;
   renderAnalyticsDashboard();
 }
-
+ 
 function renderAnalyticsDashboard() {
   const data = getFilteredData();
   renderDetectedTypeBadge();
@@ -1418,7 +1417,7 @@ function renderAnalyticsDashboard() {
   renderColumnProfiler(data);
   renderColumnComparison();
 }
-
+ 
 function renderDetectedTypeBadge() {
   const labels = {
     sales:    { ar:'🛒 بيانات مبيعات',    en:'🛒 Sales Data',      color:'#f59e0b' },
@@ -1436,7 +1435,7 @@ function renderDetectedTypeBadge() {
       ${ac?`<div class="type-badge" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--primary);font-size:.78rem">${lang==='ar'?'فلتر نشط':'Active filter'}: ${Object.values(activeFilters).join(', ')}</div>`:''}
     </div>`;
 }
-
+ 
 // ── Section 1: Executive Summary ─────────────────────
 function renderExecSummary(data) {
   const nc = analyticsHeaders.filter(h => data.filter(r=>isNumeric(r[h])).length > data.length*0.4);
@@ -1473,7 +1472,7 @@ function renderExecSummary(data) {
     const t = setInterval(() => { cur=Math.min(cur+inc,raw); el.textContent=Math.round(cur).toLocaleString(); if(cur>=raw) clearInterval(t); }, 25);
   });
 }
-
+ 
 // ── Section 6: Data Slicer ────────────────────────────
 function renderDataSlicer() {
   const catCols = analyticsHeaders.filter(h => {
@@ -1500,14 +1499,14 @@ function renderDataSlicer() {
 function toggleFilter(col,val) { if(activeFilters[col]===val) delete activeFilters[col]; else activeFilters[col]=val; renderAnalyticsDashboard(); }
 function removeFilter(col) { delete activeFilters[col]; renderAnalyticsDashboard(); }
 function clearFilters() { activeFilters={}; renderAnalyticsDashboard(); }
-
+ 
 // ── Section 2: Charts ─────────────────────────────────
 function renderAnalyticsCharts(data) {
   const nc = analyticsHeaders.filter(h=>data.filter(r=>isNumeric(r[h])).length>data.length*0.4);
   const tc = analyticsHeaders.filter(h=>{ const u=new Set(data.map(r=>String(r[h]||'').trim())).size; return u<=14&&u>1&&data.filter(r=>!isEmpty(r[h])).length>data.length*0.4; });
   const dc = analyticsHeaders.filter(h=>data.filter(r=>isDate(r[h])&&!isEmpty(r[h])).length>data.length*0.3);
   let charts = '';
-
+ 
   // BAR CHART
   if (tc.length && nc.length) {
     const xCol=tc[0], yCol=nc[0];
@@ -1532,7 +1531,7 @@ function renderAnalyticsCharts(data) {
         <line x1="0" y1="90%" x2="100%" y2="90%" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
       </svg></div>`;
   }
-
+ 
   // DONUT CHART
   if (tc.length) {
     const col=tc[0];
@@ -1564,7 +1563,7 @@ function renderAnalyticsCharts(data) {
         <div style="flex:1;min-width:110px">${legend}</div>
       </div></div>`;
   }
-
+ 
   // LINE CHART with area fill
   if (nc.length) {
     const yCol=nc[0];
@@ -1596,10 +1595,10 @@ function renderAnalyticsCharts(data) {
         </svg></div>`;
     }
   }
-
+ 
   document.getElementById('analytics-charts-grid').innerHTML = charts || `<p style="color:var(--muted);padding:1rem">${lang==='ar'?'لا توجد بيانات كافية للرسم':'Not enough data for charts'}</p>`;
 }
-
+ 
 // ── Top 10 Table ──────────────────────────────────────
 function renderTop10(data) {
   const nc = analyticsHeaders.filter(h=>data.filter(r=>isNumeric(r[h])).length>data.length*0.4);
@@ -1623,7 +1622,7 @@ function renderTop10(data) {
       </tbody>
     </table></div></div>`;
 }
-
+ 
 // ── Section 3: AI-style Insights ─────────────────────
 function renderAIAnalyticsInsights(data) {
   const nc = analyticsHeaders.filter(h=>data.filter(r=>isNumeric(r[h])).length>data.length*0.4);
@@ -1633,7 +1632,7 @@ function renderAIAnalyticsInsights(data) {
   const getFreq = col => { const f={}; data.forEach(r=>{const v=String(r[col]||'').trim();if(v)f[v]=(f[v]||0)+1;}); return Object.entries(f).sort((a,b)=>b[1]-a[1]); };
   const stdDev = arr => { const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length); };
   let ins = [];
-
+ 
   if (detectedType==='sales') {
     if (nc.length) {
       const nums=getNums(nc[0]),total=nums.reduce((a,b)=>a+b,0),avg=total/nums.length;
@@ -1687,14 +1686,14 @@ function renderAIAnalyticsInsights(data) {
     }
     if (tc.length){const f=getFreq(tc[0]);if(f[0])ins.push({i:'🔁',t:`${lang==='ar'?'أكثر تكراراً في '+tc[0]:'Top in '+tc[0]}: ${f[0][0]}`});}
   }
-
+ 
   document.getElementById('ai-analytics-insights').innerHTML = ins.slice(0,5).map((c,i)=>`
     <div class="ai-insight-card" style="animation-delay:${i*0.1}s">
       <div class="ai-insight-icon">${c.i}</div>
       <div style="font-size:.87rem">${c.t}</div>
     </div>`).join('');
 }
-
+ 
 // ── Section 4: Column Profiler ────────────────────────
 function renderColumnProfiler(data) {
   const items = analyticsHeaders.map(col => {
@@ -1754,7 +1753,7 @@ function renderColumnProfiler(data) {
   });
   document.getElementById('column-profiler').innerHTML = `<div class="profiler-list">${items.join('')}</div>`;
 }
-
+ 
 // ── Section 5: Column Comparison ─────────────────────
 function renderColumnComparison() {
   document.getElementById('column-comparison').innerHTML = `
@@ -1774,7 +1773,7 @@ function renderColumnComparison() {
       <div id="comp-result" style="margin-top:1.25rem"></div>
     </div>`;
 }
-
+ 
 function runColumnComparison() {
   const xCol=document.getElementById('comp-x').value, yCol=document.getElementById('comp-y').value;
   if(!xCol||!yCol||xCol===yCol) return;
@@ -1812,7 +1811,7 @@ function runColumnComparison() {
     result.innerHTML=`<svg viewBox="0 0 200 105" style="width:100%;height:140px">${bars2}${lbls2}<line x1="0" y1="90%" x2="100%" y2="90%" stroke="rgba(255,255,255,.07)" stroke-width="1"/></svg>`;
   }
 }
-
+ 
 // ── Analytics PDF ─────────────────────────────────────
 function exportAnalyticsPDF() {
   const now=new Date();
@@ -1857,7 +1856,7 @@ function exportAnalyticsPDF() {
   <script>window.onload=function(){window.print();}<\/script></body></html>`);
   pw.document.close();
 }
-
+ 
 // ── Analytics Presentation Mode ───────────────────────
 function openAnalyticsPresentation() {
   const pres=document.getElementById('presentation-mode');
@@ -1878,17 +1877,17 @@ function openAnalyticsPresentation() {
     <div class="pres-stat"><div class="stat-number">${analyticsHeaders.length}</div><div class="stat-label">${lang==='ar'?'عدد الأعمدة':'Columns'}</div></div>
     ${cells}`;
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // WOW INVESTOR SECTIONS
 // ═══════════════════════════════════════════════════════
-
+ 
 // ROI Engine constants (Separation of Concerns — pure logic, no DOM)
 // Manual cleaning: 60 min/file | DataCell: 1 min/file | Speed factor: 60×
 var ROI_MANUAL_MIN = 60;
 var ROI_SYS_MIN    = 1;
 var _roiPrev = { h: 0, m: 0, y: 0 };
-
+ 
 /**
  * Animated counter: counts from `from` to `to` using ease-out cubic.
  * Zero-side-effect — only updates the specified DOM element.
@@ -1912,34 +1911,34 @@ function roiCountUp(id, from, to, suf, dur) {
   }
   requestAnimationFrame(tick);
 }
-
+ 
 /** Compute and display ROI results. Called on every slider change. */
 function wowROI() {
   var e = +document.getElementById('wow-emp').value;
   var f = +document.getElementById('wow-files').value;
   var r = +document.getElementById('wow-rate').value;
-
+ 
   // Update slider value badges (sanitized — numbers only, no innerHTML risk)
   document.getElementById('wow-empV').textContent   = e;
   document.getElementById('wow-filesV').textContent = f;
   document.getElementById('wow-rateV').textContent  = r;
-
+ 
   // Speed factor (fixed: 60 min manual ÷ 1 min system = 60×)
   var speedFactor = Math.round(ROI_MANUAL_MIN / ROI_SYS_MIN);
   var speedEl = document.getElementById('wow-speed-x');
   if (speedEl) speedEl.textContent = speedFactor + '×';
-
+ 
   // Core calculation
   // Hours saved/month = employees × files × (manualMin − sysMin) / 60
   var hoursSaved  = Math.round(e * f * (ROI_MANUAL_MIN - ROI_SYS_MIN) / 60);
   var moneySaved  = Math.round(hoursSaved * r);
   var yearSaved   = moneySaved * 12;
-
+ 
   // Animated counters from previous value → new value
   roiCountUp('wow-hours', _roiPrev.h, hoursSaved, '',      600);
   roiCountUp('wow-money', _roiPrev.m, moneySaved, ' ر.س', 700);
   roiCountUp('wow-year',  _roiPrev.y, yearSaved,  ' ر.س', 800);
-
+ 
   _roiPrev = { h: hoursSaved, m: moneySaved, y: yearSaved };
 }
 function wowAnim(id,target,suffix,dur){
@@ -1983,7 +1982,40 @@ function wowInit(){
   wowAnim('wow-c3',18700,'',1800);
   wowAnim('wow-c4',97,'%',1200);
 }
-
+ 
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+ 
+// ═══════════════════════════════════════════════════════
+// EXPOSE GLOBALS — required for Vite module bundling
+// All functions called from HTML onclick/onchange
+// must be attached to window
+// ═══════════════════════════════════════════════════════
+window.handleFile            = handleFile;
+window.handleDrop            = handleDrop;
+window.loadSampleData        = loadSampleData;
+window.loadSampleForAnalytics= loadSampleForAnalytics;
+window.toggleLang            = toggleLang;
+window.resetAll              = resetAll;
+window.startCleaning         = startCleaning;
+window.goToExport            = goToExport;
+window.exportCSV             = exportCSV;
+window.exportXLSX            = exportXLSX;
+window.exportPDF             = exportPDF;
+window.exportAnalyticsPDF    = exportAnalyticsPDF;
+window.toggleChat            = toggleChat;
+window.sendChat              = sendChat;
+window.openPresentation      = openPresentation;
+window.openAnalyticsPresentation = openAnalyticsPresentation;
+window.showAnalytics         = showAnalytics;
+window.toggleOpsLog          = toggleOpsLog;
+window.globalUndo            = globalUndo;
+window.undoOp                = undoOp;
+window.applySuggestion       = applySuggestion;
+window.applySectorTemplate   = applySectorTemplate;
+window.toggleFilter          = toggleFilter;
+window.removeFilter          = removeFilter;
+window.clearFilters          = clearFilters;
+window.runColumnComparison   = runColumnComparison;
+window.wowROI                = wowROI;
