@@ -1,214 +1,198 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <title>DataCell — نظّف بياناتك</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    /* التنسيق الملكي باللون الأسود والأزرق التقني */
-    :root {
-      --bg: #050505;
-      --card: #111111;
-      --primary: #38bdf8;
-      --accent: #0ea5e9;
-      --text: #f8fafc;
-      --muted: #64748b;
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let lang = 'ar';
+let rawData = [];
+let cleanData = [];
+let headers = [];
+let rawHeaders = [];
+let filename = '';
+let problems = { duplicates: 0, emptyCells: 0, outliers: 0, emptyColumns: 0 };
+
+const EMPTY_VALS = new Set([
+  '', 'null', 'undefined', 'n/a', 'na', 'none', 'nil', 'missing', '?', '؟',
+  'لا يوجد', 'لا توجد', 'غير متاح', '-', '--', '#n/a', 'nan'
+]);
+
+// ═══════════════════════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════════════════════
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  filename = file.name;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+      
+      if (!json || json.length === 0) {
+        alert("الملف فارغ أو غير صالحة بياناته");
+        return;
+      }
+
+      rawData = json;
+      headers = Object.keys(json[0]);
+      rawHeaders = [...headers];
+      startProcessing();
+    } catch(err) {
+      alert("خطأ في قراءة ملف الإكسل");
     }
+  };
+  reader.readAsArrayBuffer(file);
+}
 
-    body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      overflow-x: hidden;
-    }
+function startProcessing() {
+  showScreen('processing');
+  const bar = document.getElementById('progress-bar');
+  if (bar) bar.style.width = '100%';
+  
+  setTimeout(() => {
+    analyzeData();
+    showDiagnosis();
+  }, 1500);
+}
 
-    .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-    .screen.active { display: flex; }
+// ═══════════════════════════════════════════════════════
+// ANALYSIS (منطق اكتشاف الأخطاء الحقيقي)
+// ═══════════════════════════════════════════════════════
+function isEmpty(v) {
+  if (v === null || v === undefined) return true;
+  return EMPTY_VALS.has(String(v).trim().toLowerCase());
+}
 
-    /* هيدر الهوية */
-    .nav { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
-    .logo-text { font-size: 1.8rem; font-weight: 800; background: linear-gradient(to right, var(--primary), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+function analyzeData() {
+  problems = { duplicates: 0, emptyCells: 0, outliers: 0, emptyColumns: 0 };
+  const seenRows = new Set();
 
-    /* واجهة الرفع */
-    .hero { text-align: center; margin-top: 60px; }
-    .hero-logo { font-size: 4rem; font-weight: 900; letter-spacing: -2px; margin-bottom: 10px; }
-    .tagline { color: var(--muted); font-size: 1.2rem; margin-bottom: 40px; }
-
-    .drop-zone {
-      width: 100%; max-width: 600px; height: 280px;
-      border: 1px solid #333; border-radius: 24px;
-      background: rgba(255,255,255,0.02);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transition: 0.3s; cursor: pointer;
-    }
-    .drop-zone:hover { border-color: var(--primary); background: rgba(56, 189, 248, 0.05); }
-    .drop-icon { font-size: 4rem; margin-bottom: 15px; }
-
-    /* الأزرار */
-    .btn-primary {
-      background: var(--primary); color: #000; border: none; padding: 14px 40px;
-      border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 1rem; transition: 0.3s;
-    }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2); }
-
-    /* الجداول */
-    .data-table-wrap {
-      width: 100%; max-width: 1100px; background: var(--card);
-      border-radius: 16px; border: 1px solid #222; overflow-x: auto; margin-top: 20px;
-    }
-    table { width: 100%; border-collapse: collapse; text-align: right; }
-    th { background: #1a1a1a; color: var(--primary); padding: 15px; font-size: 0.9rem; border-bottom: 2px solid #222; }
-    td { padding: 12px 15px; border-bottom: 1px solid #1a1a1a; color: #cbd5e1; font-size: 0.85rem; }
-
-    /* العداد */
-    .counter-val { font-size: 6rem; font-weight: 900; color: var(--primary); }
-
-    /* التذييل الرسمي */
-    footer { width: 100%; padding: 40px 20px; text-align: center; border-top: 1px solid #111; margin-top: 50px; }
-    .sdaia-badge { background: #1a1a1a; padding: 6px 15px; border-radius: 50px; font-size: 0.8rem; color: var(--muted); margin: 0 5px; border: 1px solid #333; }
-  </style>
-</head>
-<body>
-
-  <section class="screen active" id="screen-landing">
-    <nav class="nav"><div class="logo-text">DataCell</div></nav>
-    <div class="hero">
-      <div class="hero-logo">DataCell</div>
-      <div class="tagline">نظّف بياناتك. افهم أرقامك. بدقة محاسبية.</div>
-      <div class="drop-zone" onclick="document.getElementById('file-input').click()">
-        <div class="drop-icon">📂</div>
-        <h3 style="margin:0">اسحب ملفك هنا</h3>
-        <p style="color:var(--muted)">يدعم Excel و CSV</p>
-        <button class="btn-primary" style="margin-top:15px">اختيار الملف</button>
-      </div>
-      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
-    </div>
-  </section>
-
-  <section class="screen" id="screen-processing">
-    <div style="margin-top:20vh" class="counter-val" id="cleaning-counter">0</div>
-    <p id="status-text">جاري معالجة البيانات...</p>
-  </section>
-
-  <section class="screen" id="screen-diagnosis">
-    <h2 style="color:var(--primary)">👁️ معاينة أولية للبيانات</h2>
-    <div class="data-table-wrap">
-      <table id="preview-table"></table>
-    </div>
-    <div style="margin-top:30px">
-      <button class="btn-primary" onclick="startCleaning()">✨ بدء التنظيف الذكي</button>
-    </div>
-  </section>
-
-  <section class="screen" id="screen-insights">
-    <h2 style="color:var(--primary)">✅ اكتمل التنظيف بنجاح</h2>
-    <div style="display:flex; gap:20px; width:100%; max-width:1200px;">
-      <div style="flex:1">
-        <p style="color:var(--muted)">البيانات الأصلية (قبل)</p>
-        <div class="data-table-wrap"><table id="table-before"></table></div>
-      </div>
-      <div style="flex:1">
-        <p style="color:var(--primary)">البيانات المنقحة (بعد)</p>
-        <div class="data-table-wrap"><table id="table-after"></table></div>
-      </div>
-    </div>
-    <div style="margin-top:40px; display:flex; gap:15px;">
-      <button class="btn-primary" onclick="exportExcel()">⬇️ تحميل الملف المنظف</button>
-      <button class="btn-primary" style="background:#333; color:#fff" onclick="location.reload()">🔄 جديد</button>
-    </div>
-  </section>
-
-  <footer>
-    <span class="sdaia-badge">🛡️ سدايا / SDAIA</span>
-    <span class="sdaia-badge">🔒 حماية البيانات الشخصية</span>
-    <p style="font-size:0.75rem; margin-top:15px; color:#444">DataCell &copy; 2026 - جميع الحقوق محفوظة لمطوره عبده عبدالله</p>
-  </footer>
-
-  <script>
-    let rawData = [];
-    let cleanData = [];
-
-    // 1. قراءة الملف مع حل مشكلة الرموز (UTF-8 Arabic Support)
-    function handleFile(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array', codepage: 65001 });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        rawData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-        if (rawData.length > 0) {
-          renderTable('preview-table', rawData.slice(0, 10));
-          showScreen('diagnosis');
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    // 2. أنيميشن العداد ومنطق التنظيف
-    function startCleaning() {
-      showScreen('processing');
-      let count = 0;
-      const total = rawData.length;
-      const counterEl = document.getElementById('cleaning-counter');
-
-      const interval = setInterval(() => {
-        if (count >= total) {
-          clearInterval(interval);
-          finalizeCleaning();
-        } else {
-          count += Math.ceil(total / 20);
-          if (count > total) count = total;
-          counterEl.innerText = count;
-        }
-      }, 40);
-    }
-
-    function finalizeCleaning() {
-      cleanData = rawData.map(row => {
-        let newRow = {};
-        for (let key in row) {
-          let val = row[key];
-          if (typeof val === 'string') {
-            val = val.trim().replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '');
-          }
-          newRow[key] = val;
-        }
-        return newRow;
+  headers.forEach(col => {
+    // 1. كشف الأعمدة الفارغة تماماً
+    if (rawData.every(r => isEmpty(r[col]))) problems.emptyColumns++;
+    
+    // 2. كشف القيم الشاذة (إحصائياً)
+    let nums = rawData.map(r => parseFloat(String(r[col]).replace(/,/g,''))).filter(n => !isNaN(n));
+    if (nums.length > 5) {
+      let avg = nums.reduce((a,b) => a+b) / nums.length;
+      let std = Math.sqrt(nums.map(x => Math.pow(x - avg, 2)).reduce((a,b) => a+b) / nums.length);
+      rawData.forEach(r => {
+        let n = parseFloat(String(r[col]).replace(/,/g,''));
+        if (!isNaN(n) && Math.abs(n - avg) > std * 2.5) problems.outliers++;
       });
-
-      renderTable('table-before', rawData.slice(0, 5));
-      renderTable('table-after', cleanData.slice(0, 5));
-      showScreen('insights');
     }
+  });
 
-    // 3. دالة بناء الجداول
-    function renderTable(tableId, data) {
-      const table = document.getElementById(tableId);
-      const headers = Object.keys(data[0]);
-      let html = "<thead><tr>" + headers.map(h => `<th>${h}</th>`).join('') + "</tr></thead>";
-      html += "<tbody>" + data.map(row => "<tr>" + headers.map(h => `<td>${row[h]}</td>`).join('') + "</tr>").join('') + "</tbody>";
-      table.innerHTML = html;
-    }
+  rawData.forEach(row => {
+    // 3. كشف المكررات
+    let rowKey = JSON.stringify(row);
+    if (seenRows.has(rowKey)) problems.duplicates++;
+    else seenRows.add(rowKey);
 
-    // 4. تحميل الملف
-    function exportExcel() {
-      const ws = XLSX.utils.json_to_sheet(cleanData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "CleanData");
-      XLSX.writeFile(wb, "DataCell_Cleaned.xlsx");
-    }
+    // 4. كشف الفراغات
+    headers.forEach(h => { if (isEmpty(row[h])) problems.emptyCells++; });
+  });
+}
 
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById('screen-' + id).classList.add('active');
-    }
-  </script>
-</body>
-</html>
+// ═══════════════════════════════════════════════════════
+// DIAGNOSIS (تحديث واجهة التقرير)
+// ═══════════════════════════════════════════════════════
+function showDiagnosis() {
+  showScreen('diagnosis');
+  
+  // تحديث عدادات المشاكل في الواجهة
+  const badges = document.querySelectorAll('.problem-badge span');
+  if (badges.length >= 2) {
+    badges[0].textContent = (lang === 'ar' ? `خلايا فارغة` : `Empty Cells`) + ` (${problems.emptyCells})`;
+    badges[1].textContent = (lang === 'ar' ? `صفوف مكررة` : `Duplicates`) + ` (${problems.duplicates})`;
+  }
+
+  // رندر الجدول الصغير للمعاينة
+  if (typeof renderPreviewTable === 'function') renderPreviewTable();
+}
+
+// ═══════════════════════════════════════════════════════
+// CLEANING (منطق التنظيف الفعلي)
+// ═══════════════════════════════════════════════════════
+function startCleaning() {
+  showScreen('cleaning');
+  
+  setTimeout(() => {
+    const seen = new Set();
+    // تنفيذ التنظيف: حذف مكررات + مسح مسافات
+    cleanData = rawData.filter(row => {
+      let key = JSON.stringify(row);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).map(row => {
+      let newRow = {};
+      Object.keys(row).forEach(k => {
+        newRow[k] = typeof row[k] === 'string' ? row[k].trim() : row[k];
+      });
+      return newRow;
+    });
+
+    showInsights();
+  }, 2000);
+}
+
+// ═══════════════════════════════════════════════════════
+// INSIGHTS & COMPARISON (إصلاح الرموز والعرض)
+// ═══════════════════════════════════════════════════════
+function renderComparisonTable(tableId, data) {
+  const tbl = document.getElementById(tableId);
+  if (!tbl) return;
+  const preview = data.slice(0, 10);
+
+  const ths = `<tr>${rawHeaders.map(h => `<th style="text-align:right; background:#111; color:#0f0; padding:10px; font-size:12px;">${h}</th>`).join('')}</tr>`;
+  
+  const trs = preview.map(row => {
+    const tds = rawHeaders.map(col => {
+      let val = (row[col] === null || row[col] === undefined) ? '' : String(row[col]);
+      return `<td style="text-align:right; padding:8px; border-bottom:1px solid #222; white-space:nowrap; direction:rtl; font-size:12px;">${val}</td>`;
+    }).join('');
+    return `<tr>${tds}</tr>`;
+  }).join('');
+
+  tbl.innerHTML = `<thead>${ths}</thead><tbody>${trs}</tbody>`;
+}
+
+function showInsights() {
+  showScreen('insights');
+  renderComparisonTable('clean-table-before', rawData);
+  renderComparisonTable('clean-table-after', cleanData);
+  
+  // تحديث عدادات قبل وبعد
+  const bCount = document.getElementById('before-row-count');
+  const aCount = document.getElementById('after-row-count');
+  if (bCount) bCount.textContent = `(${rawData.length})`;
+  if (aCount) aCount.textContent = `(${cleanData.length})`;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + id);
+  if (target) target.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// GLOBAL EXPORTS
+// ═══════════════════════════════════════════════════════
+window.handleFile = handleFile;
+window.handleDrop = handleDrop;
+window.startCleaning = startCleaning;
+window.showInsights = showInsights;
+window.loadSampleData = () => { 
+  alert("يرجى رفع ملف Excel حقيقي لتجربة التنظيف");
+};
