@@ -1,5 +1,10 @@
 // 1. دالة بدء التنظيف (التي يستدعيها الزر)
 function startCleaning() {
+    if (!rawData || rawData.length === 0) {
+        alert("لا توجد بيانات لتنظيفها!");
+        return;
+    }
+
     // إظهار شاشة المعالجة
     showScreen('cleaning');
     
@@ -13,23 +18,24 @@ function startCleaning() {
             clearInterval(interval);
             executeFinalClean(); // تنفيذ التنظيف الفعلي بعد انتهاء الأنميشن
         } else {
-            count += Math.ceil(total / 20); // سرعة العداد
+            count += Math.ceil(total / 10); // زيادة سرعة العداد قليلاً
             if (count > total) count = total;
-            counterEl.innerText = count;
+            if (counterEl) counterEl.innerText = count;
         }
-    }, 50);
+    }, 40);
 }
 
-// 2. منطق التنظيف الفعلي (الدقة المحاسبية)
+// 2. منطق التنظيف الفعلي (حل مشكلة الرموز + الدقة المحاسبية)
 function executeFinalClean() {
     cleanData = rawData.map(row => {
         let newRow = {};
         for (let key in row) {
             let val = row[key];
             if (typeof val === 'string') {
-                // تنظيف الفراغات + توحيد التنسيق + حل مشكلة الرموز
+                // تنظيف الفراغات
                 val = val.trim();
-                // كود لمنع الرموز الغريبة مع الحفاظ على الحروف العربية والانجليزية والأرقام
+                // حماية الحروف العربية والانجليزية والأرقام وحذف "الرموز الغريبة"
+                // هذا التعبير النمطي يحافظ على النصوص العربية واللاتينية والمسافات
                 val = val.replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '');
             }
             newRow[key] = val;
@@ -42,28 +48,43 @@ function executeFinalClean() {
     renderResultTables();
 }
 
-// 3. عرض الجداول في شاشة النتائج
+// 3. عرض الجداول في شاشة النتائج (تصحيح وسوم HTML)
 function renderResultTables() {
     const beforeTable = document.getElementById('clean-table-before');
     const afterTable = document.getElementById('clean-table-after');
     
-    // عرض أول 5 صفوف للمقارنة
-    renderTable(beforeTable, rawData.slice(0, 5));
-    renderTable(afterTable, cleanData.slice(0, 5));
+    if (beforeTable) renderTable(beforeTable, rawData.slice(0, 5));
+    if (afterTable) renderTable(afterTable, cleanData.slice(0, 5));
 }
 
 function renderTable(tableEl, data) {
     if (!data || data.length === 0) return;
     const headers = Object.keys(data[0]);
-    let html = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
-    html += `<tbody>${data.map(row => `<tr>${headers.map(h => `<td>${row[h]}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    
+    // بناء الهيكل الصحيح للجدول
+    let html = "<thead><tr>";
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += "</tr></thead><tbody>";
+    
+    data.forEach(row => {
+        html += "<tr>";
+        headers.forEach(h => html += `<td>${row[h]}</td>`);
+        html += "</tr>";
+    });
+    
+    html += "</tbody>";
     tableEl.innerHTML = html;
 }
 
-// 4. دالة التصدير (Export) لكي يعمل زر التحميل في النهاية
+// 4. دالة التصدير (Export)
 function exportCSV() {
+    if (!cleanData || cleanData.length === 0) return;
     const ws = XLSX.utils.json_to_sheet(cleanData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "CleanedData");
+    XLSX.utils.book_append_sheet(wb, ws, "DataCell_Clean");
     XLSX.writeFile(wb, "DataCell_Cleaned.xlsx");
 }
+
+// هام جداً: إذا كنت تستخدم type="module" في السكريبت، أضف هذه السطور لضمان رؤية الأزرار للدوال
+window.startCleaning = startCleaning;
+window.exportCSV = exportCSV;
