@@ -1,147 +1,159 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataCell — احترافية تنظيف البيانات</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --bg: #0f172a; /* الأسود الفخم */
-            --card-bg: #1e293b;
-            --primary: #38bdf8; /* الأزرق السماوي التقني */
-            --text: #f8fafc;
-        }
-        body { font-family: 'Tajawal', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; flex-grow: 1; }
-        .screen.active { display: flex; }
-
-        /* الهوية البصرية */
-        .hero-logo { font-size: 3rem; font-weight: 900; background: linear-gradient(to left, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
-        .tagline { color: #94a3b8; margin-bottom: 40px; font-size: 1.1rem; }
-
-        /* منطقة الرفع */
-        .drop-zone {
-            width: 100%; max-width: 650px; height: 280px;
-            border: 2px dashed #334155; border-radius: 24px;
-            background: var(--card-bg); display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.3s; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-        }
-        .drop-zone:hover { border-color: var(--primary); transform: translateY(-5px); }
-        .drop-icon { font-size: 4rem; filter: drop-shadow(0 0 10px var(--primary)); }
-
-        /* الجداول والأزرار */
-        .data-table-wrap { width: 100%; max-width: 1000px; overflow-x: auto; background: #0f172a; border-radius: 12px; border: 1px solid #334155; margin: 20px 0; }
-        table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.9rem; }
-        th { background: #334155; color: var(--primary); padding: 15px; }
-        td { padding: 12px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
-        .btn { background: var(--primary); color: #0f172a; border: none; padding: 14px 35px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; }
-        .btn:hover { opacity: 0.9; transform: scale(1.05); }
-
-        /* التذييل */
-        footer { padding: 30px; text-align: center; background: rgba(15, 23, 42, 0.9); border-top: 1px solid #1e293b; }
-        .legal-tags { display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; }
-        .tag { background: #1e293b; padding: 5px 15px; border-radius: 50px; font-size: 0.8rem; border: 1px solid #334155; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <meta name="description" content="DataCell — منصة تنظيف وتحليل البيانات للشركات السعودية الصغيرة والمتوسطة. رفع ملف CSV أو Excel وتنظيفه في ثوانٍ." />
+  <title>DataCell — نظّف بياناتك</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="./src/styles/main.css" />
+  <style>
+    /* إضافة لمسة فخامة تناسب نسخة الجوال ومنع الرموز الغريبة */
+    body { font-family: 'Tajawal', sans-serif; background-color: #0f172a; color: #f8fafc; }
+    .data-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; text-align: right; }
+    /* تحسين شكل التذييل ليكون متناسقاً مع سدايا */
+    .sdaia-footer { background: rgba(0,0,0,0.3); padding: 20px; text-align: center; border-top: 1px solid #334155; }
+    .sdaia-badge-ft { background: #1e293b; padding: 4px 10px; border-radius: 6px; margin: 0 5px; font-size: 0.8rem; }
+  </style>
 </head>
 <body>
 
-    <section class="screen active" id="screen-landing">
-        <div class="hero-logo">DataCell</div>
-        <div class="tagline">نظّف بياناتك. افهم أرقامك. بدقة محاسبية متناهية.</div>
-        <div class="drop-zone" onclick="document.getElementById('file-input').click()">
-            <div class="drop-icon">🚀</div>
-            <h3>ارفع ملف الإكسل هنا</h3>
-            <p style="color: #64748b;">(XLSX, CSV, XLS)</p>
-            <button class="btn">اختر الملف</button>
-        </div>
-        <input type="file" id="file-input" style="display:none" onchange="handleFile(event)">
-        <footer>
-            <div class="legal-tags">
-                <span class="tag">🇸🇦 متوافق مع SDAIA</span>
-                <span class="tag">🔒 حماية البيانات الشخصية</span>
-            </div>
-            <p>© 2026 DataCell - تم التطوير بدقة واحترافية</p>
-        </footer>
-    </section>
+<div class="aurora"></div>
 
-    <section class="screen" id="screen-processing">
-        <div class="hero-logo" id="proc-text">جاري التحليل...</div>
-        <div style="width: 300px; height: 4px; background: #1e293b; border-radius: 10px;">
-            <div id="progress" style="width: 0%; height: 100%; background: var(--primary); transition: 1s;"></div>
-        </div>
-    </section>
+<canvas id="confetti-canvas"></canvas>
 
-    <section class="screen" id="screen-result">
-        <h2 id="result-title">👁️ معاينة البيانات</h2>
-        <div class="data-table-wrap"><table id="main-table"></table></div>
-        <div style="display:flex; gap:15px;">
-            <button class="btn" style="background:#475569;" onclick="location.reload()">إلغاء</button>
-            <button class="btn" id="clean-btn" onclick="applyCleaning()">تنظيف البيانات فوراً ➔</button>
-        </div>
-    </section>
+<button id="chat-btn" onclick="toggleChat()" aria-label="AI Chat">🤖</button>
 
-    <script>
-        let rawData = [];
-        function handleFile(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            showScreen('processing');
-            document.getElementById('progress').style.width = '100%';
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const workbook = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'});
-                rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
-                setTimeout(() => { showScreen('result'); render(rawData); }, 1200);
-            };
-            reader.readAsArrayBuffer(file);
-        }
+<div id="chat-panel">
+  <div class="chat-header">
+    <span class="chat-title">اسألني عن بياناتك 🤖</span>
+    <button class="btn-close-chat" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg-bubble msg-ai">مرحباً! اسألني أي سؤال عن بياناتك 📊</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" class="chat-input" id="chat-input" placeholder="اكتب سؤالك..." />
+    <button class="btn-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
 
-        function applyCleaning() {
-            showScreen('processing');
-            document.getElementById('proc-text').innerText = "جاري التنظيف...";
-            // منطق تنظيف حقيقي
-            const cleaned = rawData.map(row => {
-                let newRow = {};
-                for (let k in row) {
-                    let val = row[k];
-                    if (typeof val === 'string') {
-                        val = val.trim(); // حذف الفراغات
-                        val = val.replace(/[^\w\s\u0600-\u06FF]/gi, ''); // حذف الرموز الغريبة مع الحفاظ على العربي
-                    }
-                    newRow[k] = val;
-                }
-                return newRow;
+<section class="screen active" id="screen-landing">
+  <nav class="nav">
+    <div class="logo-text">DataCell</div>
+    <div class="nav-actions">
+      <button class="btn-lang" onclick="toggleLang()">EN</button>
+    </div>
+  </nav>
+  <div class="hero">
+    <div class="hero-logo">DataCell</div>
+    <div class="tagline" data-ar="نظّف بياناتك. افهم أرقامك. في ثوانٍ.">نظّف بياناتك. افهم أرقامك. في ثوانٍ.</div>
+
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">📂</div>
+      <h3>اسحب ملفك هنا</h3>
+      <p>أو انقر للاختيار (Excel, CSV)</p>
+      <div class="formats-badge"><span>CSV</span><span>•</span><span>XLSX</span></div>
+      <button class="btn-primary" type="button">اختر ملفاً</button>
+    </div>
+    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
+  </div>
+</section>
+
+<section class="screen" id="screen-diagnosis">
+  <div class="card">
+    <div class="card-title">👁️ معاينة البيانات (حل مشكلة الرموز العربية)</div>
+    <div class="data-table-wrap">
+      <table class="data-table" id="preview-table"></table>
+    </div>
+    <button class="btn-primary" onclick="startCleaning()" style="margin-top:20px">✨ نظّف كل شيء تلقائياً</button>
+  </div>
+</section>
+
+<footer class="sdaia-footer">
+  <div class="sdaia-footer-inner">
+    <span>DataCell &copy; 2026 Abdu Abdella Ahmed</span>
+    <span class="sdaia-sep">|</span>
+    <span>مُطابق لمتطلبات</span>
+    <span class="sdaia-badge-ft">🛡️ سدايا / SDAIA</span>
+    <span class="sdaia-badge-ft">📋 PDPL</span>
+  </div>
+</footer>
+
+<script>
+// الوظيفة الأساسية لقراءة الملف بدون رموز غريبة
+function handleFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // إظهار شاشة المعالجة (اختياري حسب الـ CSS عندك)
+    // showScreen('processing');
+
+    const reader = new FileReader();
+    
+    // الحل السحري للرموز الغريبة: قراءة الملف كـ ArrayBuffer
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            
+            // إضافة خاصية codepage لضمان دعم العربية (65001 = UTF-8)
+            const workbook = XLSX.read(data, { 
+                type: 'array',
+                codepage: 65001 
             });
-            setTimeout(() => {
-                showScreen('result');
-                document.getElementById('result-title').innerText = "✅ البيانات بعد التنظيف";
-                document.getElementById('clean-btn').innerText = "تحميل الملف النظيف";
-                document.getElementById('clean-btn').onclick = () => exportFile(cleaned);
-                render(cleaned);
-            }, 1500);
-        }
 
-        function render(data) {
-            const table = document.getElementById('main-table');
-            const head = Object.keys(data[0]);
-            let html = `<thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
-            html += `<tbody>${data.slice(0,10).map(r => `<tr>${head.map(h => `<td>${r[h]}</td>`).join('')}</tr>`).join('')}</tbody>`;
-            table.innerHTML = html;
-        }
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // تحويل الشيت إلى JSON مع الحفاظ على النصوص كما هي
+            const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-        function exportFile(data) {
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "CleanData");
-            XLSX.writeFile(wb, "DataCell_Cleaned.xlsx");
+            if (json.length > 0) {
+                renderPreviewTable(json.slice(0, 10)); // عرض أول 10 صفوف
+                showScreen('diagnosis');
+            }
+        } catch (err) {
+            console.error(err);
+            alert("حدث خطأ أثناء قراءة الملف العربي، تأكد من ترميز الملف.");
         }
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
 
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('screen-' + id).classList.add('active');
-        }
-    </script>
+function renderPreviewTable(data) {
+    const table = document.getElementById('preview-table');
+    const headers = Object.keys(data[0]);
+    
+    let html = "<thead><tr>";
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += "</tr></thead><tbody>";
+    
+    data.forEach(row => {
+        html += "<tr>";
+        headers.forEach(h => html += `<td>${row[h]}</td>`);
+        html += "</tr>";
+    });
+    
+    html += "</tbody>";
+    table.innerHTML = html;
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+}
+
+function toggleChat() {
+    const panel = document.getElementById('chat-panel');
+    panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+}
+</script>
+
 </body>
 </html>
