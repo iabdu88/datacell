@@ -3,19 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <meta name="description" content="DataCell — منصة تنظيف وتحليل البيانات." />
-  <title>DataCell — نظّف بياناتك</title>
-  
+  <title>DataCell — منصة تنظيف البيانات</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/styles/main.css" />
-  
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
   <style>
-    /* تأكيد إخفاء الشاشات غير النشطة */
     .screen { display: none; }
     .screen.active { display: block; }
+    /* تنسيق إضافي للتذييل لضمان ظهوره */
+    footer { margin-top: 50px; padding: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9rem; color: #666; }
+    .legal-logos { display: flex; justify-content: center; gap: 20px; margin-bottom: 10px; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -25,7 +22,7 @@
       <div class="hero-logo">DataCell</div>
       <div class="tagline">نظّف بياناتك. افهم أرقامك. في ثوانٍ.</div>
 
-      <div class="drop-zone" id="drop-zone"
+      <div class="drop-zone" id="drop-zone" 
            ondragover="event.preventDefault(); this.classList.add('dragover')"
            ondragleave="this.classList.remove('dragover')"
            ondrop="handleDrop(event)"
@@ -37,6 +34,14 @@
       </div>
       <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
     </div>
+
+    <footer>
+      <div class="legal-logos">
+         <span>🇸🇦 متوافق مع سياسات SDAIA</span>
+         <span>🔒 حماية البيانات الشخصية</span>
+      </div>
+      <p>© 2026 DataCell - جميع الحقوق محفوظة لـ Codzina</p>
+    </footer>
   </section>
 
   <section class="screen" id="screen-processing">
@@ -51,17 +56,13 @@
 
   <section class="screen" id="screen-diagnosis">
     <div class="card">
-      <div class="card-title">👁️ معاينة أولية للبيانات</div>
-      <p class="card-subtitle">تأكد من صحة الأعمدة قبل البدء في عملية التنظيف.</p>
-      
+      <div class="card-title">👁️ معاينة البيانات المرفوعة</div>
       <div class="data-table-wrap">
-        <table class="data-table" id="preview-table">
-          </table>
+        <table class="data-table" id="preview-table"></table>
       </div>
-
-      <div class="action-bar">
-        <button class="btn-secondary" onclick="resetAll()">رفع ملف آخر</button>
-        <button class="btn-primary" onclick="startCleaning()">ابدأ التنظيف والتحليل ➔</button>
+      <div class="action-bar" style="margin-top: 20px; display: flex; gap: 10px;">
+        <button class="btn-secondary" onclick="resetAll()">إلغاء</button>
+        <button class="btn-primary" onclick="startCleaning()">بدأ التنظيف والتحليل ➔</button>
       </div>
     </div>
   </section>
@@ -70,24 +71,21 @@
     <div class="processing-content">
       <div class="loader-ring"></div>
       <h2>جاري تنظيف وتوحيد البيانات</h2>
-      <p>تمت معالجة <span id="cleaning-counter">0</span> سجل حتى الآن...</p>
+      <p>تمت معالجة <span id="cleaning-counter">0</span> سجل...</p>
     </div>
   </section>
 
   <section class="screen" id="screen-insights">
-    <div class="results-grid">
-      <div class="card">
-        <h3>النتائج النهائية</h3>
-        <div class="data-table-wrap">
-          <table class="data-table" id="clean-table-after"></table>
-        </div>
-        <button class="btn-primary" onclick="resetAll()">إنهاء وحفظ النتائج</button>
+    <div class="card">
+      <h3>النتائج النهائية</h3>
+      <div class="data-table-wrap">
+        <table class="data-table" id="clean-table-after"></table>
       </div>
+      <button class="btn-primary" onclick="resetAll()" style="margin-top: 20px;">حفظ النتائج والبدء من جديد</button>
     </div>
   </section>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
   <script src="/datacell.js"></script>
 
 </body>
