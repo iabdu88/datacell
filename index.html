@@ -5,134 +5,90 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
   <meta name="description" content="DataCell — منصة تنظيف وتحليل البيانات." />
   <title>DataCell — نظّف بياناتك</title>
+  
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  
   <link rel="stylesheet" href="./src/styles/main.css" />
+  
   <style>
-    /* تأكيد ظهور الشاشات عند تفعيلها */
+    /* تأكيد إخفاء الشاشات غير النشطة */
     .screen { display: none; }
     .screen.active { display: block; }
   </style>
 </head>
 <body>
 
-<section class="screen active" id="screen-landing">
-  <div class="hero">
-    <div class="hero-logo">DataCell</div>
-    <div class="tagline">نظّف بياناتك. افهم أرقامك. في ثوانٍ.</div>
+  <section class="screen active" id="screen-landing">
+    <div class="hero">
+      <div class="hero-logo">DataCell</div>
+      <div class="tagline">نظّف بياناتك. افهم أرقامك. في ثوانٍ.</div>
 
-    <div class="drop-zone" id="drop-zone"
-         ondragover="event.preventDefault(); this.classList.add('dragover')"
-         ondragleave="this.classList.remove('dragover')"
-         ondrop="handleDrop(event)"
-         onclick="document.getElementById('file-input').click()">
-      <div class="drop-icon">📂</div>
-      <h3>اسحب ملفك هنا</h3>
-      <p>أو انقر للاختيار</p>
-      <button class="btn-primary" type="button">اختر ملفاً</button>
+      <div class="drop-zone" id="drop-zone"
+           ondragover="event.preventDefault(); this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)"
+           onclick="document.getElementById('file-input').click()">
+        <div class="drop-icon">📂</div>
+        <h3>اسحب ملفك هنا</h3>
+        <p>أو انقر للاختيار (Excel, CSV)</p>
+        <button class="btn-primary" type="button">اختر ملفاً</button>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
     </div>
-    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
-  </div>
-</section>
+  </section>
 
-<section class="screen" id="screen-processing">
-  <div class="processing-content">
-    <div class="spinner-logo">⟳</div>
-    <h2>جاري المعالجة...</h2>
-    <div class="progress-bar-outer">
-      <div class="progress-bar-inner" id="progress-bar" style="width: 0%; transition: width 1s;"></div>
+  <section class="screen" id="screen-processing">
+    <div class="processing-content">
+      <div class="spinner-logo">⟳</div>
+      <h2>جاري فحص البيانات...</h2>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progress-bar"></div>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="screen" id="screen-diagnosis">
-  <div class="card">
-    <div class="card-title">👁️ معاينة البيانات (أول 10 صفوف)</div>
-    <div class="data-table-wrap">
-      <table class="data-table" id="preview-table"></table>
+  <section class="screen" id="screen-diagnosis">
+    <div class="card">
+      <div class="card-title">👁️ معاينة أولية للبيانات</div>
+      <p class="card-subtitle">تأكد من صحة الأعمدة قبل البدء في عملية التنظيف.</p>
+      
+      <div class="data-table-wrap">
+        <table class="data-table" id="preview-table">
+          </table>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn-secondary" onclick="resetAll()">رفع ملف آخر</button>
+        <button class="btn-primary" onclick="startCleaning()">ابدأ التنظيف والتحليل ➔</button>
+      </div>
     </div>
-    <button class="btn-primary" onclick="resetAll()">رفع ملف آخر</button>
-  </div>
-</section>
+  </section>
 
-<script>
-// الحالة العامة
-let rawData = [];
+  <section class="screen" id="screen-cleaning">
+    <div class="processing-content">
+      <div class="loader-ring"></div>
+      <h2>جاري تنظيف وتوحيد البيانات</h2>
+      <p>تمت معالجة <span id="cleaning-counter">0</span> سجل حتى الآن...</p>
+    </div>
+  </section>
 
-// دالة معالجة الملف
-function handleFile(event) {
-    const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
-    if (!file) return;
+  <section class="screen" id="screen-insights">
+    <div class="results-grid">
+      <div class="card">
+        <h3>النتائج النهائية</h3>
+        <div class="data-table-wrap">
+          <table class="data-table" id="clean-table-after"></table>
+        </div>
+        <button class="btn-primary" onclick="resetAll()">إنهاء وحفظ النتائج</button>
+      </div>
+    </div>
+  </section>
 
-    console.log("تم اختيار ملف:", file.name);
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-
-            if (json.length > 0) {
-                rawData = json;
-                
-                // الانتقال لشاشة المعالجة
-                switchScreen('processing');
-                document.getElementById('progress-bar').style.width = '100%';
-
-                setTimeout(() => {
-                    switchScreen('diagnosis');
-                    renderTable(json);
-                }, 1500);
-            } else {
-                alert("الملف فارغ!");
-            }
-        } catch (err) {
-            console.error("خطأ برمي:", err);
-            alert("حدث خطأ أثناء قراءة ملف الإكسل.");
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-// دالة السحب والإفلات
-function handleDrop(event) {
-    event.preventDefault();
-    document.getElementById('drop-zone').classList.remove('dragover');
-    handleFile(event);
-}
-
-// دالة تبديل الشاشات
-function switchScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const target = document.getElementById('screen-' + screenId);
-    if (target) target.classList.add('active');
-}
-
-// دالة عرض الجدول
-function renderTable(data) {
-    const table = document.getElementById('preview-table');
-    if (!table) return;
-    
-    const headers = Object.keys(data[0]);
-    const rows = data.slice(0, 10);
-    
-    let html = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
-    html += `<tbody>${rows.map(row => `<tr>${headers.map(h => `<td>${row[h]}</td>`).join('')}</tr>`).join('')}</tbody>`;
-    table.innerHTML = html;
-}
-
-// الدوال العامة
-window.handleFile = handleFile;
-window.handleDrop = handleDrop;
-window.resetAll = () => location.reload();
-</script>
+  <script src="/datacell.js"></script>
 
 </body>
 </html>
